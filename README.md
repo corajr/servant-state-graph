@@ -1,4 +1,4 @@
-!(spider offering hot choclety hask)[choclety_hask.png]
+![spider offering hot choclety hask](choclety_hask.png)
 
 # choclety-hask
 
@@ -20,7 +20,7 @@ state (such as a revenue-generating action).
 ## Usage
 
 The library exposes a function, `choclety`, that generates graph JSON suitable
-for use with the included viewer (`index.html`).
+for use with the included [viewer](https://corajr.github.io/choclety-hask/index.html).
 
 To generate a graph for use with Cytoscape.js:
 
