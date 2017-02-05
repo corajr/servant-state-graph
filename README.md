@@ -1,9 +1,11 @@
-![spider offering hot choclety hask](choclety_hask.png)
+![spider offering hot choclety hask](docs/img/choclety_hask.png)
 
 # choclety-hask
 
 Generate graphs from [Servant](http://haskell-servant.readthedocs.io) API types.
 Inspired by [choclety](https://github.com/mooreniemi/choclety).
+
+![example graph](docs/img/example_graph.png)
 
 ## Use
 
