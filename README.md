@@ -7,7 +7,7 @@ Inspired by [choclety](https://github.com/mooreniemi/choclety).
 
 [![example graph](docs/img/example_graph.png) See a live demo.](https://corajr.github.io/choclety-hask/index.html)
 
-## Use
+## Purpose
 
 This library helps you render
 your [Servant](http://haskell-servant.readthedocs.io) API as a state machine,

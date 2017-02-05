@@ -79,9 +79,13 @@ derive makeArbitrary ''ErrorState
 arb :: (Arbitrary a) => Handler a
 arb = liftIO (generate arbitrary)
 
-type HomepageData = ([Category], [Vendor])
+newtype Homepage = Homepage ([Category], [Vendor])
 
-type Homepage = Get '[JSON] HomepageData
+$(deriveJSON defaultOptions ''Homepage)
+
+derive makeArbitrary ''Homepage
+
+type HomeRoute = Get '[JSON] Homepage
 
 type IndexRoute a = Get '[JSON] [a]
 type ShowRoute a = Capture "id" Int :> Get '[JSON] a
@@ -91,9 +95,6 @@ type CategoryShow = "categories" :> ShowRoute Category
 type VendorIndex = "vendors" :> IndexRoute Vendor
 type VendorShow = "vendors" :> ShowRoute Vendor
 
-type CategoryAPI = CategoryIndex :<|> CategoryShow
-type VendorAPI = VendorIndex :<|> VendorShow
-
 type ProductShow = "products" :> ShowRoute Product
 type AddToCart = "products" :> Capture "id" Int :> "add" :> Post '[JSON] Cart
 
@@ -102,7 +103,7 @@ type Purchase = "cart" :> "buy" :> Post '[JSON] Invoice
 type ErrorRoute = Get '[JSON] ErrorState
 
 type Shoppe1 =
-  Homepage
+  HomeRoute
   :<|> CategoryIndex
   :<|> CategoryShow
   :<|> VendorIndex
@@ -135,23 +136,23 @@ instance LinksTo Vendor Shoppe1 where
       source = Proxy :: Proxy VendorIndex
       target = Proxy :: Proxy VendorShow
 
-instance LinksTo HomepageData Shoppe1 where
+instance LinksTo Homepage Shoppe1 where
   linksTo t a = [ link t a source target
                 , link t a source2 target ]
     where source = Proxy :: Proxy Root
           source2 = Proxy :: Proxy ErrorRoute
-          target = Proxy :: Proxy Homepage
+          target = Proxy :: Proxy HomeRoute
 
 instance LinksTo [Category] Shoppe1 where
   linksTo t a = [ link t a source target ]
     where
-      source = Proxy :: Proxy Homepage
+      source = Proxy :: Proxy HomeRoute
       target = Proxy :: Proxy CategoryIndex
 
 instance LinksTo [Vendor] Shoppe1 where
   linksTo t a = [ link t a source target ]
     where
-      source = Proxy :: Proxy Homepage
+      source = Proxy :: Proxy HomeRoute
       target = Proxy :: Proxy VendorIndex
 
 instance LinksTo Invoice Shoppe1 where
@@ -190,7 +191,7 @@ api = Proxy
 
 server :: Server Shoppe1
 server =
-  arb -- Homepage
+  arb -- HomeRoute
   :<|> arb -- CategoryIndex
   :<|> const arb  -- CategoryShow
   :<|> arb -- VendorIndex
