@@ -26,7 +26,7 @@ data ChocletyConfig = ChocletyConfig
 instance Default ChocletyConfig where
   def = ChocletyConfig (WriteJS "examples/shoppe1.js")
 
-choclety :: (HasGraph api api, LinksTo Root api) => ChocletyConfig -> Proxy api -> IO ()
+choclety :: (HasGraph api api, LinksFor api) => ChocletyConfig -> Proxy api -> IO ()
 choclety (ChocletyConfig {_command}) api =
   case _command of
     WriteJSON path -> BL.writeFile path json
@@ -36,5 +36,5 @@ choclety (ChocletyConfig {_command}) api =
     json = graphToJSON (graph api)
     js = "var ApiOutput = " <> json <> ";"
 
-choclety' :: (HasGraph api api, LinksTo Root api) => Proxy api -> IO ()
+choclety' :: (HasGraph api api, LinksFor api) => Proxy api -> IO ()
 choclety' = choclety def

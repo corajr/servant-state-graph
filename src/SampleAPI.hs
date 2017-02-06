@@ -113,63 +113,20 @@ type Shoppe1 =
   :<|> Purchase
   :<|> ErrorRoute
 
-apiLink :: (IsElem endpoint Shoppe1, HasLink endpoint) => Proxy endpoint -> MkLink endpoint
-apiLink = safeLink (Proxy :: Proxy Shoppe1)
-
-instance LinksTo Category Shoppe1 where
-  linksTo t a = [ link t a source target ]
-    where source = Proxy :: Proxy CategoryIndex
-          target = Proxy :: Proxy CategoryShow
-
-instance LinksTo Product Shoppe1 where
-  linksTo t a = [ link t a source target
-                , link t a source2 target
-                ]
-    where
-      source = Proxy :: Proxy VendorShow
-      source2 = Proxy :: Proxy CategoryShow
-      target = Proxy :: Proxy ProductShow
-
-instance LinksTo Vendor Shoppe1 where
-  linksTo t a = [ link t a source target ]
-    where
-      source = Proxy :: Proxy VendorIndex
-      target = Proxy :: Proxy VendorShow
-
-instance LinksTo Homepage Shoppe1 where
-  linksTo t a = [ link t a source target
-                , link t a source2 target ]
-    where source = Proxy :: Proxy Root
-          source2 = Proxy :: Proxy ErrorRoute
-          target = Proxy :: Proxy HomeRoute
-
-instance LinksTo [Category] Shoppe1 where
-  linksTo t a = [ link t a source target ]
-    where
-      source = Proxy :: Proxy HomeRoute
-      target = Proxy :: Proxy CategoryIndex
-
-instance LinksTo [Vendor] Shoppe1 where
-  linksTo t a = [ link t a source target ]
-    where
-      source = Proxy :: Proxy HomeRoute
-      target = Proxy :: Proxy VendorIndex
-
-instance LinksTo Invoice Shoppe1 where
-  linksTo t a = [ link t a source target ]
-    where
-      source = Proxy :: Proxy AddToCart
-      target = Proxy :: Proxy Purchase
-  nodeType _ _ = TargetNode
-
-instance LinksTo Cart Shoppe1 where
-  linksTo t a = [ link t a source target ]
-    where
-      source = Proxy :: Proxy ProductShow
-      target = Proxy :: Proxy AddToCart
-
-instance LinksTo ErrorState Shoppe1 where
-  nodeType _ _ = ErrorNode
+instance LinksFor Shoppe1 where
+  linksFor api =
+    [ linkFor api (edgeFrom :: Root :=> HomeRoute) NormalNode
+    , linkFor api (edgeFrom :: Root :=> ErrorRoute) ErrorNode
+    , linkFor api (edgeFrom :: ErrorRoute :=> HomeRoute) NormalNode
+    , linkFor api (edgeFrom :: HomeRoute :=> CategoryIndex) NormalNode
+    , linkFor api (edgeFrom :: HomeRoute :=> VendorIndex) NormalNode
+    , linkFor api (edgeFrom :: CategoryIndex :=> CategoryShow) NormalNode
+    , linkFor api (edgeFrom :: VendorIndex :=> VendorShow) NormalNode
+    , linkFor api (edgeFrom :: VendorShow :=> ProductShow) NormalNode
+    , linkFor api (edgeFrom :: CategoryShow :=> ProductShow) NormalNode
+    , linkFor api (edgeFrom :: ProductShow :=> AddToCart) NormalNode
+    , linkFor api (edgeFrom :: AddToCart :=> Purchase) TargetNode
+    ]
 
 apiGraph :: ApiGraph
 apiGraph = graph api

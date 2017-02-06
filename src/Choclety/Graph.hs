@@ -9,6 +9,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 module Choclety.Graph where
 
 
@@ -47,6 +48,8 @@ import Servant.API.ContentTypes
 
 -- | A marker for the Root node.
 data Root
+
+type instance IsElem' Root api = ()
 
 data NodeType = NormalNode
               | TargetNode
@@ -88,6 +91,7 @@ data RichLink = RichLink
   { _linkSource :: RichEndpoint
   , _linkTarget :: RichEndpoint
   , _linkTargetURI :: URI
+  , _linkTargetNodeType :: NodeType
   , _linkRel :: String
   }
 
@@ -98,6 +102,7 @@ data GraphStateData = GraphStateData
   { _endpoint :: Endpoint
   , _action :: Action
   , _typesToNodeIds :: Map.Map TypeRep Node
+  , _nodeTypes :: Map.Map TypeRep NodeType
   , _edgesQueue :: [RichLink]
   , _currentNodeId :: Int
   , _currentGraph :: ApiGraph
@@ -112,6 +117,12 @@ apiLinkToURI (ApiLink {..}) =
           , uriQuery = if not (null _queryParams) then '?': intercalate "&" _queryParams else ""
           }
 
+-- | Infix operator for edge type
+type a :=> b = (Proxy a, Proxy b)
+
+edgeFrom :: (Proxy a, Proxy b)
+edgeFrom = (Proxy, Proxy)
+
 -- | Define the links that lead to this return type.
 --
 -- >>> data User
@@ -125,26 +136,20 @@ apiLinkToURI (ApiLink {..}) =
 --           target = Proxy :: Proxy UserShow
 -- :}
 
--- desired syntax?
--- instance Links API '[UserIndex] UserShow
+class LinksFor api where
+  linksFor :: Proxy api -> [RichLink]
+  linksFor a = []
 
-class LinksTo target api where
-  linksTo :: Proxy target -> Proxy api -> [RichLink]
-  linksTo _ _ = []
-
-  link :: (IsElem endpoint api, HasRichEndpoint source, HasRichEndpoint endpoint, Typeable api, Typeable target)
-       => Proxy target -> Proxy api -> Proxy source -> Proxy endpoint -> RichLink
-  link t a s e = RichLink (getRichEndpoint s) (getRichEndpoint e) uri rel
-    where targetEndpoint = getRichEndpoint e
+  linkFor :: ( IsElem source api
+             , IsElem target api
+             , HasRichEndpoint source
+             , HasRichEndpoint target)
+          => Proxy api -> (Proxy source, Proxy target) -> NodeType -> RichLink
+  linkFor _ (s, t) nodeType = RichLink sourceEndpoint targetEndpoint uri nodeType rel
+    where sourceEndpoint = getRichEndpoint s
+          targetEndpoint = getRichEndpoint t
           uri = apiLinkToURI (targetEndpoint ^. apiLink)
           rel = show uri
-
-  nodeType :: Proxy target -> Proxy api -> NodeType
-  nodeType _ _ = NormalNode
-
--- There can be no links to Root, as it represents the state before the first
--- API connection.
-instance LinksTo Root api
 
 -- | Color for each common type of request: green for GET, purple for POST, blue for PUT, red for DELETE.
 verbColors :: StdMethod -> String
@@ -154,19 +159,25 @@ verbColors PUT = "blue"
 verbColors DELETE = "red"
 verbColors _ = "black"
 
+nodeTypesFromLinks :: [RichLink] -> Map.Map TypeRep NodeType
+nodeTypesFromLinks = Map.unions . map f
+  where f l = Map.singleton (l^.linkTarget.returnType) (l^.linkTargetNodeType)
+
 -- | Generate a graph from a Servant API type.
-graph :: (HasGraph api api) => Proxy api -> ApiGraph
+graph :: (HasGraph api api, LinksFor api) => Proxy api -> ApiGraph
 graph p = view currentGraph $ execState (graphFor p p >> connectLinks) startingState
   where
     startingState = GraphStateData { _endpoint = defEndpoint
                                    , _action = defAction
                                    , _typesToNodeIds = withRoot
-                                   , _edgesQueue = []
+                                   , _nodeTypes = nodeTypesFromLinks apiLinks
+                                   , _edgesQueue = apiLinks
                                    , _currentNodeId = 1
                                    , _currentGraph = rootGraph
                                    }
     withRoot = Map.singleton (typeRep (Proxy :: Proxy Root)) 0
     rootGraph = mkGraph [(0, ApiNode "Root" NormalNode)] []
+    apiLinks = linksFor p
 
 mkEdge :: Map.Map TypeRep Node -> RichLink -> Maybe (LEdge ApiEdge)
 mkEdge typesToNodeIds' l = do
@@ -225,24 +236,21 @@ class HasGraph root api where
   graphFor :: Proxy root -> Proxy api -> GraphState ()
 
 -- Terminal instance for verbs (ending an endpoint path).
-instance (LinksTo a root, Typeable a, ReflectMethod method) => HasGraph root (Verb method status ctypes a) where
+instance (Typeable a, ReflectMethod method) => HasGraph root (Verb method status ctypes a) where
   graphFor rootP _ = do
-    pathSegments <- use (endpoint.path)
-    let pathName = intercalate "/" pathSegments
+    nodeType <- uses nodeTypes (Map.findWithDefault NormalNode stateName)
     existingNode <- uses typesToNodeIds (Map.lookup stateName)
     case existingNode of
       Just _ -> return () -- no-op
       Nothing -> do
-        edgesQueue <>= links
         currentNodeId' <- currentNodeId <<+= 1
-        let node = (currentNodeId', ApiNode (show stateName) (nodeType p rootP))
+        let node = (currentNodeId', ApiNode (show stateName) nodeType)
         currentGraph %= insNode node
         typesToNodeIds %= Map.insert stateName currentNodeId'
     endpoint .= defEndpoint
     action .= defAction
     where
       stateName = typeRep p
-      links = linksTo p rootP
       p = Proxy :: Proxy a
 
  -- Extract one component of the path.
