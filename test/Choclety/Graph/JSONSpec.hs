@@ -21,12 +21,8 @@ data User = User
 
 type API1 = "users" :> Get '[JSON] [User]
 
-
-instance LinksTo [User] API1 where
-  linksTo t a = [ link t a source target ]
-    where
-      source = Proxy :: Proxy Root
-      target = Proxy :: Proxy API1
+instance LinksFor API1 where
+  linksFor api = [ linkFor api (edgeFrom :: Root :=> API1) NormalNode]
 
 g1 :: ApiGraph
 g1 = graph (Proxy :: Proxy API1)

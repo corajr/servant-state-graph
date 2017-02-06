@@ -130,10 +130,8 @@ edgeFrom = (Proxy, Proxy)
 -- >>> type UserShow = "users" :> Capture "id" Int :> Get '[JSON] User
 -- >>> type API = UserIndex :<|> UserShow
 -- >>> :{
--- instance LinksTo User API where
---   linksTo t a = [ link t a source target ]
---     where source = Proxy :: Proxy UserIndex
---           target = Proxy :: Proxy UserShow
+-- instance LinksFor API where
+--   linksFor api = [ linkFor api (edgeFrom :: UserIndex :=> UserShow) NormalNode ]
 -- :}
 
 class LinksFor api where

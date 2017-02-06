@@ -33,6 +33,7 @@ data User = User {
 
 
 type UserIndex = "users" :> QueryParam "sortby" SortBy :> Get '[JSON] [User]
+type UserIndexPlain = "users" :> Get '[JSON] [User]
 type UserShow = "user" :> Capture "id" Int :> Get '[JSON] User
 type UserDelete = "user" :> Capture "id" Int :> DeleteNoContent '[JSON] NoContent
 
@@ -40,26 +41,13 @@ type UserAPI = UserIndex
            :<|> UserShow
            :<|> UserDelete
 
-userApiLink :: (IsElem endpoint UserAPI, HasLink endpoint) => Proxy endpoint -> MkLink endpoint
-userApiLink = safeLink (Proxy :: Proxy UserAPI)
-
-instance LinksTo NoContent UserAPI where
-  linksTo t a = [ link t a source target ]
-    where source = Proxy :: Proxy UserShow
-          target = Proxy :: Proxy UserDelete
-
-instance LinksTo User UserAPI where
-  linksTo t a = [ link t a source target ]
-    where source = Proxy :: Proxy UserIndex
-          target = Proxy :: Proxy UserShow
-
-instance LinksTo [User] UserAPI where
-  linksTo t a = [ link t a source target
-                , link t a target target2
-                ]
-    where source = Proxy :: Proxy Root
-          target = Proxy :: Proxy ("users" :> Get '[JSON] [User])
-          target2 = Proxy :: Proxy ("users" :> QueryParam "sortby" SortBy :> Get '[JSON] [User])
+instance LinksFor UserAPI where
+  linksFor api =
+    [ linkFor api (edgeFrom :: Root :=> UserIndexPlain) NormalNode
+    , linkFor api (edgeFrom :: UserIndexPlain :=> UserIndex) NormalNode
+    , linkFor api (edgeFrom :: UserIndex :=> UserShow) NormalNode
+    , linkFor api (edgeFrom :: UserShow :=> UserDelete) NormalNode
+    ]
 
 userAPI :: Proxy UserAPI
 userAPI = Proxy
@@ -76,8 +64,8 @@ userGraph = mkGraph [ (0, ApiNode "Root" NormalNode)
 
 type API1 = GetNoContent '[JSON] NoContent
 
-instance LinksTo NoContent API1 where
-  nodeType _ _ = ErrorNode
+instance LinksFor API1 where
+  linksFor api = [ linkFor api (edgeFrom :: Root :=> API1) ErrorNode ]
 
 api1 :: Proxy API1
 api1 = Proxy
@@ -85,19 +73,20 @@ api1 = Proxy
 g1 :: ApiGraph
 g1 = mkGraph [(0, ApiNode "Root" NormalNode)
              ,(1, ApiNode "NoContent" ErrorNode)
-             ] []
+             ] [(0, 1, ApiEdge "" "green")]
 
 type API2 = Capture "id" Int :> GetNoContent '[JSON] NoContent
 
-instance LinksTo NoContent API2
+instance LinksFor API2 where
+  linksFor api = [ linkFor api (edgeFrom :: Root :=> API2) NormalNode ]
 
 api2 :: Proxy API2
 api2 = Proxy
 
 g2 :: ApiGraph
 g2 = mkGraph [ (0, ApiNode "Root" NormalNode)
-             , (1, ApiNode "NoContent" NormalNode)] []
-
+             , (1, ApiNode "NoContent" NormalNode)
+             ] [(0, 1, ApiEdge ":id" "green")]
 
 spec :: Spec
 spec = do
