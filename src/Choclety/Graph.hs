@@ -117,8 +117,20 @@ apiLinkToURI (ApiLink {..}) =
           , uriQuery = if not (null _queryParams) then '?': intercalate "&" _queryParams else ""
           }
 
--- | Infix operator for edge type
+-- | Infix operator for expressing a link between two endpoints.
 type a :=> b = (Proxy a, Proxy b)
+
+-- | A convenient value to be used with @linkFor@, as in:
+--
+-- >>> type Counter = "counter" :> Get '[JSON] Int
+-- >>> type CounterIncrement = "counter" :> "inc" :> Post '[JSON] Int
+-- >>> let edge = edgeFrom :: Counter :=> CounterIncrement
+-- >>> edge
+-- (Proxy,Proxy)
+-- >>> :{
+-- instance LinksFor (Counter :<|> CounterIncrement) where
+--   linksFor api = [ linkFor api edge NormalNode ]
+-- :}
 
 edgeFrom :: (Proxy a, Proxy b)
 edgeFrom = (Proxy, Proxy)

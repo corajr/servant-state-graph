@@ -57,10 +57,10 @@ userGraph = mkGraph [ (0, ApiNode "Root" NormalNode)
                     , (1, ApiNode "[User]" NormalNode)
                     , (2, ApiNode "User" NormalNode)
                     , (3, ApiNode "NoContent" NormalNode)]
-                    [ (0, 1, ApiEdge "users" "green")
-                    , (1, 1, ApiEdge "users?sortby" "green")
-                    , (1, 2, ApiEdge "user/:id" "green")
-                    , (2, 3, ApiEdge "user/:id" "red")]
+                    [ (0, 1, ApiEdge "GET /users" "green")
+                    , (1, 1, ApiEdge "GET /users?sortby" "green")
+                    , (1, 2, ApiEdge "GET /user/:id" "green")
+                    , (2, 3, ApiEdge "DELETE /user/:id" "red")]
 
 type API1 = GetNoContent '[JSON] NoContent
 
@@ -86,7 +86,7 @@ api2 = Proxy
 g2 :: ApiGraph
 g2 = mkGraph [ (0, ApiNode "Root" NormalNode)
              , (1, ApiNode "NoContent" NormalNode)
-             ] [(0, 1, ApiEdge ":id" "green")]
+             ] [(0, 1, ApiEdge "GET /:id" "green")]
 
 spec :: Spec
 spec = do
