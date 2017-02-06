@@ -14,17 +14,19 @@ import Data.Proxy (Proxy(..))
 import Data.Typeable
 import Choclety.Graph
 import Choclety.Graph.JSON
+import Choclety.Graph.Server
 
 data ChocletyCommand = WriteJSON FilePath
                   | WriteJS FilePath
                   | PrintJSON
+                  | Serve Int
 
 data ChocletyConfig = ChocletyConfig
   { _command :: ChocletyCommand
   }
 
 instance Default ChocletyConfig where
-  def = ChocletyConfig (WriteJS "examples/shoppe1.js")
+  def = ChocletyConfig (Serve 8090)
 
 choclety :: (HasGraph api api, LinksFor api) => ChocletyConfig -> Proxy api -> IO ()
 choclety (ChocletyConfig {_command}) api =
@@ -32,6 +34,7 @@ choclety (ChocletyConfig {_command}) api =
     WriteJSON path -> BL.writeFile path json
     WriteJS path -> BL.writeFile path js
     PrintJSON -> BL.putStr json
+    Serve port -> serveGraph (graph api) port
   where
     json = graphToJSON (graph api)
     js = "var ApiOutput = " <> json <> ";"

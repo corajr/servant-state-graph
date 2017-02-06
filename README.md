@@ -23,19 +23,21 @@ state (such as a revenue-generating action).
 
 ## Usage
 
-The library exposes a function, `choclety`, that generates graph JSON suitable
-for use with the included [viewer](https://corajr.github.io/choclety-hask/index.html).
+The library exposes a function, `choclety`, that can generate graph JSON
+suitable for use with the included [viewer][viewer] or serve the viewer on a
+desired port.
 
-To generate a graph for use with Cytoscape.js:
+To serve up the graph viewer (uses Cytoscape.js)
+at [127.0.0.1:8090](http://127.0.0.1:8090):
 
 `stack build && stack exec choclety`
 
-To view the graph, serve up the local directory, e.g. by `python -m SimpleHTTPServer 8090`, and view [127.0.0.1:8090](http://127.0.0.1:8090).
-
-To serve up the example API on port 8080:
+To serve up the API itself on port 8080:
 
 `stack exec choclety-server`
 
 To run the test suite:
 
 `stack test`
+
+[viewer]: https://corajr.github.io/choclety-hask/index.html

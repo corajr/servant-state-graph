@@ -19,13 +19,16 @@ library
                      , Choclety
                      , Choclety.Graph
                      , Choclety.Graph.JSON
+                     , Choclety.Graph.Server
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , containers
                      , bytestring
                      , data-default
+                     , http-media
                      , network-uri
                      , text
+                     , mustache
                      , servant-server
                      , servant-docs
                      , hashable
