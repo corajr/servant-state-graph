@@ -11,6 +11,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Choclety.Graph where
 
+
 import qualified Data.ByteString.Char8 as B
 import Control.Lens.TH
 
@@ -37,6 +38,12 @@ import Servant.API
 import Servant.Utils.Links
 import Servant.Docs.Internal
 import Servant.API.ContentTypes
+
+-- $setup
+-- >>> :set -XDataKinds
+-- >>> :set -XTypeOperators
+-- >>> :set -XFlexibleInstances
+-- >>> :set -XMultiParamTypeClasses
 
 -- | A marker for the Root node.
 data Root
@@ -94,7 +101,19 @@ apiLinkToURI (ApiLink {..}) =
           , uriQuery = if not (null _queryParams) then '?': intercalate "&" _queryParams else ""
           }
 
--- | Define the links from one return type to another.
+-- | Define the links that lead to this return type.
+--
+-- >>> data User
+-- >>> type UserIndex = "users" :> Get '[JSON] [User]
+-- >>> type UserShow = "users" :> Capture "id" Int :> Get '[JSON] User
+-- >>> type API = UserIndex :<|> UserShow
+-- >>> :{
+-- instance LinksTo User API where
+--   linksTo t a = [ link t a source target ]
+--     where source = Proxy :: Proxy UserIndex
+--           target = Proxy :: Proxy UserShow
+-- :}
+
 class LinksTo target api where
   linksTo :: Proxy target -> Proxy api -> [RichLink]
   linksTo _ _ = []
