@@ -23,7 +23,7 @@ import qualified Data.Text as T
 import Data.Proxy (Proxy(..))
 import Data.Graph.Inductive.Graph (empty, insNode, insEdge, mkGraph, Node, LEdge(..), LNode(..))
 import Data.Graph.Inductive.PatriciaTree
-import Control.Lens (view, use, uses, (.=), (<>=), (<<+=), (%=), (&), (<>~), (^.))
+import Control.Lens (view, use, uses, (.=), (<>=), (<<+=), (%=), (&), (<>~), (^.), (%~))
 import qualified Control.Lens as L
 import qualified Data.Map as Map
 
@@ -74,13 +74,24 @@ data ApiLink = ApiLink
   }
 $(makeLenses ''ApiLink)
 
-data RichLink = RichLink
-  { richLinkUri :: URI
-  , richLinkMethod :: StdMethod
-  , richLinkSourceType :: SourceType
-  , richLinkTargetType :: TargetType
-  , richLinkRel :: String
+emptyLink :: ApiLink
+emptyLink = ApiLink mempty mempty
+
+data RichEndpoint = RichEndpoint
+  { _apiLink :: ApiLink
+  , _endpointMethod :: StdMethod
+  , _returnType :: TypeRep
   }
+$(makeLenses ''RichEndpoint)
+
+data RichLink = RichLink
+  { _linkSource :: RichEndpoint
+  , _linkTarget :: RichEndpoint
+  , _linkTargetURI :: URI
+  , _linkRel :: String
+  }
+
+$(makeLenses ''RichLink)
 
 -- | State data for building up the graph.
 data GraphStateData = GraphStateData
@@ -114,24 +125,22 @@ apiLinkToURI (ApiLink {..}) =
 --           target = Proxy :: Proxy UserShow
 -- :}
 
+-- desired syntax?
+-- instance Links API '[UserIndex] UserShow
+
 class LinksTo target api where
   linksTo :: Proxy target -> Proxy api -> [RichLink]
   linksTo _ _ = []
 
-  link :: (IsElem endpoint api, HasMethod endpoint, HasMethod source, Typeable api, Typeable target)
+  link :: (IsElem endpoint api, HasRichEndpoint source, HasRichEndpoint endpoint, Typeable api, Typeable target)
        => Proxy target -> Proxy api -> Proxy source -> Proxy endpoint -> RichLink
-  link t a s e = RichLink { richLinkUri = uri
-                          , richLinkMethod = getMethod e
-                          , richLinkSourceType = getReturn s
-                          , richLinkTargetType = typeRep t
-                          , richLinkRel = rel
-                          }
-    where uri = getURI e (ApiLink mempty mempty)
+  link t a s e = RichLink (getRichEndpoint s) (getRichEndpoint e) uri rel
+    where targetEndpoint = getRichEndpoint e
+          uri = apiLinkToURI (targetEndpoint ^. apiLink)
           rel = show uri
 
   nodeType :: Proxy target -> Proxy api -> NodeType
   nodeType _ _ = NormalNode
-
 
 -- There can be no links to Root, as it represents the state before the first
 -- API connection.
@@ -160,10 +169,14 @@ graph p = view currentGraph $ execState (graphFor p p >> connectLinks) startingS
     rootGraph = mkGraph [(0, ApiNode "Root" NormalNode)] []
 
 mkEdge :: Map.Map TypeRep Node -> RichLink -> Maybe (LEdge ApiEdge)
-mkEdge typesToNodeIds' (RichLink {..}) = do
-  startNode <- Map.lookup richLinkSourceType typesToNodeIds'
-  endNode <- Map.lookup richLinkTargetType typesToNodeIds'
-  return $ (startNode, endNode, ApiEdge richLinkRel (verbColors richLinkMethod))
+mkEdge typesToNodeIds' l = do
+  startNode <- Map.lookup sourceType typesToNodeIds'
+  endNode <- Map.lookup targetType typesToNodeIds'
+  return $ (startNode, endNode, ApiEdge rel (verbColors meth))
+    where sourceType = l^.linkSource.returnType
+          targetType = l^.linkTarget.returnType
+          rel = l^.linkRel
+          meth = l^.linkTarget.endpointMethod
 
 connectLinks :: GraphState ()
 connectLinks = do
@@ -176,42 +189,37 @@ connectLinks = do
 -- https://hackage.haskell.org/package/servant-docs-0.10/docs/src/Servant-Docs-Internal.html#docs
 -- basically a reimplementation of HasDocs type class
 
-class HasMethod endpoint where
-  getMethod :: Proxy endpoint -> StdMethod
-  getReturn :: Proxy endpoint -> TypeRep
-  getURI :: Proxy endpoint -> ApiLink -> URI
+-- | Extract the 'ApiLink', return type, and method from an endpoint.
+class HasRichEndpoint endpoint where
+  getRichEndpoint :: Proxy endpoint -> RichEndpoint
 
-instance HasMethod Root where
-  getMethod _ = error "No method"
-  getReturn = typeRep
-  getURI _ _ = nullURI
+instance HasRichEndpoint Root where
+  getRichEndpoint p =
+    RichEndpoint { _apiLink = emptyLink
+                 , _endpointMethod = error "no method"
+                 , _returnType = typeRep p
+                 }
 
-instance (HasMethod sub, KnownSymbol sym) => HasMethod (sym :> sub) where
-  getMethod _ = getMethod (Proxy :: Proxy sub)
-  getReturn _ = getReturn (Proxy :: Proxy sub)
-  getURI _ old = getURI (Proxy :: Proxy sub) (old & segments <>~ [symbolVal s])
+instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (sym :> sub) where
+  getRichEndpoint _ = apiLink.segments %~ (symbolVal s:) $ getRichEndpoint (Proxy :: Proxy sub)
     where s = Proxy :: Proxy sym
 
-instance (HasMethod sub, KnownSymbol sym) => HasMethod (Capture sym a :> sub) where
-  getMethod _ = getMethod (Proxy :: Proxy sub)
-  getReturn _ = getReturn (Proxy :: Proxy sub)
-  getURI _ old = getURI (Proxy :: Proxy sub) (old & segments <>~ [":" ++ symbolVal s])
+instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (Capture sym a :> sub) where
+  getRichEndpoint _ = apiLink.segments %~ ((':':symbolVal s):) $ getRichEndpoint (Proxy :: Proxy sub)
     where s = Proxy :: Proxy sym
 
-instance (HasMethod sub, KnownSymbol sym) => HasMethod (QueryParam sym a :> sub) where
-  getMethod _ = getMethod (Proxy :: Proxy sub)
-  getReturn _ = getReturn (Proxy :: Proxy sub)
-  getURI _ old = getURI (Proxy :: Proxy sub) (old & queryParams <>~ [symbolVal s])
+instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (QueryParam sym a :> sub) where
+  getRichEndpoint _ = apiLink.queryParams %~ (symbolVal s:) $ getRichEndpoint (Proxy :: Proxy sub)
     where s = Proxy :: Proxy sym
 
-instance (ReflectMethod method, Typeable a) => HasMethod (Verb method status ctypes a) where
-  getMethod p = case (reflectMethod (Proxy :: Proxy method)) of
-    "GET" -> GET
-    "POST" -> POST
-    "PUT" -> PUT
-    "DELETE" -> DELETE
-  getReturn p = typeRep (Proxy :: Proxy a)
-  getURI _ old = apiLinkToURI old
+instance (ReflectMethod method, Typeable a) => HasRichEndpoint (Verb method status ctypes a) where
+  getRichEndpoint _ = RichEndpoint emptyLink method retType
+   where method = case (reflectMethod (Proxy :: Proxy method)) of
+           "GET" -> GET
+           "POST" -> POST
+           "PUT" -> PUT
+           "DELETE" -> DELETE
+         retType = typeRep (Proxy :: Proxy a)
 
 class HasGraph root api where
   graphFor :: Proxy root -> Proxy api -> GraphState ()
