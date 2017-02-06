@@ -113,7 +113,7 @@ type GraphState = State GraphStateData
 
 apiLinkToURI :: ApiLink -> URI
 apiLinkToURI (ApiLink {..}) =
-  nullURI { uriPath = intercalate "/" _segments
+  nullURI { uriPath = '/' : intercalate "/" _segments
           , uriQuery = if not (null _queryParams) then '?': intercalate "&" _queryParams else ""
           }
 
@@ -147,7 +147,8 @@ class LinksFor api where
     where sourceEndpoint = getRichEndpoint s
           targetEndpoint = getRichEndpoint t
           uri = apiLinkToURI (targetEndpoint ^. apiLink)
-          rel = show uri
+          meth = targetEndpoint ^. endpointMethod
+          rel = if nodeType == ErrorNode then "" else show meth ++ " " ++ show uri
 
 -- | Color for each common type of request: green for GET, purple for POST, blue for PUT, red for DELETE.
 verbColors :: StdMethod -> String

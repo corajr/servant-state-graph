@@ -5,7 +5,7 @@
 Generate graphs from [Servant](http://haskell-servant.readthedocs.io) API types.
 Inspired by [choclety](https://github.com/mooreniemi/choclety).
 
-[![example graph](docs/img/example_graph.png) See a live demo.](https://corajr.github.io/choclety-hask/index.html)
+[![example graph](docs/img/example_graph.gif) See a live demo.](https://corajr.github.io/choclety-hask/index.html)
 
 ## Purpose
 
