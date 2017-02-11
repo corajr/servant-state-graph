@@ -38,7 +38,7 @@ instance FromJSON MediaType where
   parseJSON = withText "MediaType" f
     where f = maybe (fail "Could not parse media type") pure . parseAccept . BS.pack . T.unpack
 
-data LinkObject = LinkObject
+data HALLink = HALLink
   { _href :: URI
   , _templated :: Maybe Bool
   , _type :: Maybe MediaType
@@ -47,21 +47,13 @@ data LinkObject = LinkObject
   , _profile :: Maybe URI
   , _title :: Maybe String
   , _hreflang :: Maybe String
-  } deriving (Eq, Show)
-$(deriveJSON defaultOptions{ fieldLabelModifier = drop 1, omitNothingFields = True } ''LinkObject)
-
-data HALLink = HALLink LinkObject
-             | HALLinks [LinkObject]
-             deriving (Eq, Show)
-
-instance ToJSON HALLink where
-  toJSON (HALLink x) = toJSON x
-  toJSON (HALLinks xs) = toJSON xs
-
-instance FromJSON HALLink where
-  parseJSON xs@(Array _) = fmap HALLinks $ listParser (parseJSON :: Value -> Parser LinkObject) xs
-  parseJSON x@(Object _) = fmap HALLink $ (parseJSON :: Value -> Parser LinkObject) x
-  parseJSON invalid = typeMismatch "HALLink" invalid
+  }
+  | HALLinks [HALLink]
+  deriving (Eq, Show)
+$(deriveJSON defaultOptions{ fieldLabelModifier = drop 1
+                           , omitNothingFields = True
+                           , sumEncoding = UntaggedValue
+                           } ''HALLink)
 
 data HAL = HAL
   { resource :: Value
@@ -70,7 +62,6 @@ data HAL = HAL
   }
   | HALArray [HAL]
   deriving (Eq, Show)
-
 
 instance ToJSON HAL where
   toJSON (HALArray xs) = toJSONList xs
@@ -86,19 +77,20 @@ instance ToJSON HAL where
           embedded = addProp "_embedded" _embedded
 
 instance FromJSON HAL where
-  parseJSON = withObject "HAL" f
-    where f v = do links <- v .:? "_links"
-                   embedded <- v .:? "_embedded"
-                   let links' = fromMaybe HM.empty links
-                       embedded' = fromMaybe HM.empty embedded
-                       v' = HM.delete "_links" (HM.delete "_embedded" v)
-                   return $ HAL (Object v') links' embedded'
+  parseJSON (Object v) = do links <- v .:? "_links"
+                            embedded <- v .:? "_embedded"
+                            let links' = fromMaybe HM.empty links
+                                embedded' = fromMaybe HM.empty embedded
+                                v' = HM.delete "_links" (HM.delete "_embedded" v)
+                            return $ HAL (Object v') links' embedded'
+  parseJSON xs@(Array _) = fmap HALArray $ listParser parseJSON xs
+  parseJSON invalid = typeMismatch "HAL" invalid
 
 toHAL :: (ToJSON a) => a -> HAL
 toHAL x = HAL (toJSON x) HM.empty HM.empty
 
-emptyLink :: LinkObject
-emptyLink = LinkObject
+emptyLink :: HALLink
+emptyLink = HALLink
   { _href = nullURI
   , _templated = Nothing
   , _type = Nothing
@@ -110,4 +102,4 @@ emptyLink = LinkObject
   }
 
 toLink :: URI -> HALLink
-toLink x = HALLink (emptyLink { _href = x })
+toLink x = emptyLink { _href = x }

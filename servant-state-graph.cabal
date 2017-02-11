@@ -73,6 +73,7 @@ test-suite state-graph-test
                      , servant-state-graph
                      , aeson
                      , unordered-containers
+                     , network-uri
                      , hspec
                      , QuickCheck
                      , fgl

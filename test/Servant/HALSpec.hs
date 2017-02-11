@@ -7,6 +7,7 @@ import Test.Hspec
 import Test.QuickCheck
 import Data.Aeson
 import Data.Aeson.TH
+import Network.URI (URI)
 import qualified Data.HashMap.Strict as HM
 
 import Servant.HAL
@@ -27,11 +28,22 @@ link1 = toLink "/orders/523"
 order1' :: HAL
 order1' = (toHAL order1) { _links = HM.singleton "self" link1 }
 
+links :: HALLink
+links = HALLinks [ toLink "/"
+                 , toLink "/orders"]
+
 main :: IO ()
 main = hspec spec
 
 spec :: Spec
 spec = do
+  describe "HALLink" $ do
+    it "can represent a single link" $
+      toJSON link1 `shouldBe` object ["href" .= ("/orders/523" :: URI)]
+    it "can represent an array of links" $
+      toJSON links `shouldBe` toJSONList [ object ["href" .= ("/" :: URI)]
+                                         , object ["href" .= ("/orders" :: URI)]
+                                         ]
   describe "HAL" $ do
     it "wraps a JSON object with optional properties _links and _embedded" $ do
       toHAL order1 `shouldBe` HAL (toJSON order1) HM.empty HM.empty
