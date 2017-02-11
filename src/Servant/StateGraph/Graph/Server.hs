@@ -8,7 +8,7 @@
 {-|
 The included graph viewer can be served directly from a Servant API.
 -}
-module Choclety.Graph.Server where
+module Servant.StateGraph.Graph.Server where
 
 import Servant
 import Network.Wai.Handler.Warp (run)
@@ -18,8 +18,8 @@ import Data.Text.Lazy.Encoding (encodeUtf8, decodeUtf8)
 import Network.HTTP.Media ((//))
 import Text.Mustache
 import Text.Mustache.Compile (embedTemplate)
-import Choclety.Graph
-import Choclety.Graph.JSON
+import Servant.StateGraph.Graph
+import Servant.StateGraph.Graph.JSON
 
 data HTML
 

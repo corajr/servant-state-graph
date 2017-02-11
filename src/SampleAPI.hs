@@ -17,7 +17,7 @@ import Network.Wai.Handler.Warp
 import Network.Wai.Logger
 import Test.QuickCheck
 import Control.Monad.Trans (liftIO)
-import Choclety.Graph
+import Servant.StateGraph.Graph
 import Servant
 import Servant.API.TypeLevel
 

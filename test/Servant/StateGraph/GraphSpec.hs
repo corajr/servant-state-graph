@@ -3,7 +3,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-module Choclety.GraphSpec (main, spec) where
+module Servant.StateGraph.GraphSpec (main, spec) where
 
 import Test.Hspec
 import qualified Data.Text as T
@@ -11,7 +11,7 @@ import Data.Typeable
 import Data.Proxy (Proxy(..))
 import Servant.API
 import Servant.Utils.Links
-import Choclety.Graph
+import Servant.StateGraph.Graph
 
 import Data.Graph.Inductive.Graph
 import Data.Graph.Inductive.PatriciaTree

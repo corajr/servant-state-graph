@@ -1,9 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Choclety.Graph.JSON where
+module Servant.StateGraph.Graph.JSON where
 
 import qualified Data.ByteString.Lazy as BL
 import Data.Graph.Inductive.Graph
-import Choclety.Graph
+import Servant.StateGraph.Graph
 import Data.Aeson
 import Data.Aeson.TH
 

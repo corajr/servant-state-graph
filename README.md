@@ -1,13 +1,11 @@
-![spider offering hot choclety hask](docs/img/choclety_hask.png)
-
-# choclety-hask
+# servant-state-graph
 
 Generate graphs from [Servant](http://haskell-servant.readthedocs.io) API types.
 Inspired by [choclety](https://github.com/mooreniemi/choclety).
 
-[![example graph](docs/img/example_graph.gif)](https://corajr.github.io/choclety-hask/index.html)
+[![example graph](docs/img/example_graph.gif)](https://corajr.github.io/servant-state-graph/index.html)
 
-[See a live demo.](https://corajr.github.io/choclety-hask/index.html)
+[See a live demo.](https://corajr.github.io/servant-state-graph/index.html)
 
 ## Purpose
 
@@ -40,4 +38,4 @@ To run the test suite:
 
 `stack test`
 
-[viewer]: https://corajr.github.io/choclety-hask/index.html
+[viewer]: https://corajr.github.io/servant-state-graph/index.html

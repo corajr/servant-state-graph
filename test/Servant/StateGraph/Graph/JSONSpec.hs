@@ -3,13 +3,13 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Choclety.Graph.JSONSpec (main, spec) where
+module Servant.StateGraph.Graph.JSONSpec (main, spec) where
 
 import Test.Hspec
 import Data.Typeable
 import qualified Data.ByteString.Lazy as BL
-import Choclety.Graph
-import Choclety.Graph.JSON
+import Servant.StateGraph.Graph
+import Servant.StateGraph.Graph.JSON
 import Servant.API
 import Servant.Utils.Links
 

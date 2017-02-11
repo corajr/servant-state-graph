@@ -10,7 +10,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
-module Choclety.Graph where
+module Servant.StateGraph.Graph where
 
 
 import qualified Data.ByteString.Char8 as B

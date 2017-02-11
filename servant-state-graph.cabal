@@ -1,8 +1,8 @@
-name:                choclety-hask
+name:                servant-state-graph
 version:             0.1.0.0
 synopsis:            Generate graphs from Servant API types
 description:         Please see README.md
-homepage:            https://github.com/corajr/choclety-hask#readme
+homepage:            https://github.com/corajr/servant-state-graph#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Cora Johnson-Roberson
@@ -16,10 +16,10 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     SampleAPI
-                     , Choclety
-                     , Choclety.Graph
-                     , Choclety.Graph.JSON
-                     , Choclety.Graph.Server
+                     , Servant.StateGraph
+                     , Servant.StateGraph.Graph
+                     , Servant.StateGraph.Graph.JSON
+                     , Servant.StateGraph.Graph.Server
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , containers
@@ -44,32 +44,31 @@ library
                      , servant >= 0.10
   default-language:    Haskell2010
 
-executable choclety
+executable state-graph
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
-                     , choclety-hask
+                     , servant-state-graph
                      , bytestring
                      , aeson
                      , servant
   default-language:    Haskell2010
 
-
-executable choclety-server
+executable state-graph-server
   hs-source-dirs:      server
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
-                     , choclety-hask
+                     , servant-state-graph
   default-language:    Haskell2010
 
-test-suite choclety-test
+test-suite state-graph-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
-                     , choclety-hask
+                     , servant-state-graph
                      , hspec
                      , QuickCheck
                      , fgl
@@ -79,11 +78,11 @@ test-suite choclety-test
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
-test-suite choclety-doctest
+test-suite state-graph-doctest
   type:                exitcode-stdio-1.0
   main-is:             doctest-driver.hs
   build-depends:       base
-                     , choclety-hask
+                     , servant-state-graph
                      , doctest
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
@@ -91,4 +90,4 @@ test-suite choclety-doctest
 
 source-repository head
   type:     git
-  location: https://github.com/corajr/choclety-hask
+  location: https://github.com/corajr/servant-state-graph
