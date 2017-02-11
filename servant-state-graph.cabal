@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     SampleAPI
+                     , Servant.HAL
                      , Servant.StateGraph
                      , Servant.StateGraph.Graph
                      , Servant.StateGraph.Graph.JSON
@@ -23,6 +24,7 @@ library
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , containers
+                     , unordered-containers
                      , bytestring
                      , data-default
                      , http-media
@@ -69,6 +71,8 @@ test-suite state-graph-test
   main-is:             Spec.hs
   build-depends:       base
                      , servant-state-graph
+                     , aeson
+                     , unordered-containers
                      , hspec
                      , QuickCheck
                      , fgl
