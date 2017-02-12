@@ -6,16 +6,22 @@ https://tools.ietf.org/html/draft-kelly-json-hal-08
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Servant.HAL where
 
 import Data.Aeson
 import Data.Aeson.Types
 import Data.Aeson.TH
+import Data.Proxy (Proxy(..))
 import Data.String (IsString(..))
 import Data.Maybe (fromMaybe)
-import Control.Arrow (second)
-import Network.URI
-import Network.HTTP.Media (MediaType, parseAccept)
+import Servant.API
+import Servant.Utils.Links
+import Network.URI (URI(..), nullURI, parseURIReference, relativeTo)
+import Network.HTTP.Media (MediaType, parseAccept, (//))
 import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.ByteString.Char8 as BS
@@ -27,9 +33,6 @@ instance ToJSON URI where
 instance FromJSON URI where
   parseJSON = withText "URI" f
     where f = maybe (fail "Could not parse URI") pure . parseURIReference . T.unpack
-
-instance IsString URI where
-  fromString xs = fromMaybe (error $ "invalid URI literal: " ++ xs) . parseURIReference $ xs
 
 instance ToJSON MediaType where
   toJSON = String . T.pack . show
@@ -63,14 +66,17 @@ data HAL a = HAL
   | HALArray [HAL Value]
   deriving (Eq, Show)
 
+class (ToJSON a) => ToHAL a where
+  toHAL :: a -> HAL a
+  toHAL x = HAL x HM.empty HM.empty
+
 instance (ToJSON a) => ToJSON (HAL a) where
   toJSON (HALArray xs) = toJSONList xs
   toJSON (HAL {..}) =
     case toJSON resource of
       Object ps -> Object (HM.unions [ps, links, embedded])
       _ -> error "HAL resources must contain JSON objects"
-    where addProp :: (ToJSON a) => Text -> HM.HashMap Text a -> HM.HashMap Text Value
-          addProp s xs = if not (HM.null xs)
+    where addProp s xs = if not (HM.null xs)
                          then HM.singleton s (Object (HM.map toJSON xs))
                          else HM.empty
           links = addProp "_links" _links
@@ -86,8 +92,14 @@ instance (FromJSON a) => FromJSON (HAL a) where
   parseJSON xs@(Array _) = fmap HALArray $ listParser parseJSON xs
   parseJSON invalid = typeMismatch "HAL" invalid
 
-toHAL :: (ToJSON a) => a -> HAL a
-toHAL x = HAL x HM.empty HM.empty
+-- | HAL+JSON content type.
+data HALJSON
+
+instance Accept HALJSON where
+  contentType _ = "application" // "hal+json"
+
+instance (ToHAL a) => MimeRender HALJSON a where
+  mimeRender _ v = encode (toHAL v)
 
 emptyLink :: HALLink
 emptyLink = HALLink
@@ -101,5 +113,18 @@ emptyLink = HALLink
   , _hreflang = Nothing
   }
 
-toLink :: URI -> HALLink
-toLink x = emptyLink { _href = x }
+uriFromString :: String -> URI
+uriFromString xs = fromMaybe (error $ "invalid URI literal: " ++ xs) . parseURIReference $ xs
+
+toHALLink :: (IsElem endpoint api, HasLink endpoint)
+          => Proxy api
+          -> Proxy endpoint
+          -> (MkLink endpoint -> Link)
+          -> HALLink
+toHALLink a e f = emptyLink { _href = uri' }
+  where uri = linkURI (f (safeLink a e))
+        uri' = uri `relativeTo` uriFromString "/"
+
+toHALLink' :: (IsElem endpoint api, HasLink endpoint, MkLink endpoint ~ Link)
+           => Proxy api -> Proxy endpoint -> HALLink
+toHALLink' a e = toHALLink a e id

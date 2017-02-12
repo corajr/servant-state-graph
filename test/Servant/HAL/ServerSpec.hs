@@ -11,7 +11,7 @@ import Data.Proxy (Proxy(..))
 import Data.Type.Equality
 
 type API1 = Get '[JSON] String
-type HyperAPI1 = Get '[JSON] (HAL String)
+type HyperAPI1 = Get '[HALJSON, JSON] String
 
 api1 :: Proxy API1
 api1 = Proxy
@@ -19,13 +19,10 @@ api1 = Proxy
 server1 :: Server API1
 server1 = return "hello"
 
-hyperServer1 :: Server (Hyper API1)
-hyperServer1 = return (toHAL "hello")
-
 type API2 = Get '[JSON] String
        :<|> Capture "id" Int :> Post '[JSON] String
-type HyperAPI2 = Get '[JSON] (HAL String)
-             :<|> Capture "id" Int :> Post '[JSON] (HAL String)
+type HyperAPI2 = Get '[HALJSON, JSON] String
+             :<|> Capture "id" Int :> Post '[HALJSON, JSON] String
 
 main :: IO ()
 main = hspec spec
@@ -40,10 +37,3 @@ spec = do
   describe "hyper" $ do
     it "turns a Proxy api into a Proxy (Hyper api)" $
       hyper api1 `shouldBe` (Proxy :: Proxy (Hyper API1))
-  describe "halServer" $ do
-    -- is it even possible/desirable to write such a function?
-    it "takes a Server api and returns a Server (Hyper api)" $ do
-      pending
-      let hServer = halServer api1 server1
-      runHandler server1 `shouldReturn` Right "hello"
-      runHandler hServer `shouldReturn` Right (toHAL "hello")
