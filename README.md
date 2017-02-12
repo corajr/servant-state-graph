@@ -15,6 +15,10 @@ with representations as states and requests as state transitions. This could be
 useful, for example, when looking for the shortest path(s) to reach a desired
 state (such as a revenue-generating action).
 
+It also includes the beginnings of
+a [HAL](http://stateless.co/hal_specification.html) library for Servant, for
+serving a hypermedia API.
+
 ## Prerequisites
 - [haskell-stack](https://www.haskellstack.org/): `curl -sSL https://get.haskellstack.org/ | sh`
     - run `stack setup` to obtain the Haskell compiler
@@ -26,13 +30,17 @@ suitable for use with the included [viewer][viewer] or serve the viewer on a
 desired port.
 
 To serve up the graph viewer (uses Cytoscape.js)
-at [127.0.0.1:8090](http://127.0.0.1:8090):
+at [127.0.0.1:8090](http://127.0.0.1:8090) for a sample API:
 
 `stack build && stack exec state-graph`
 
-To serve up the API itself on port 8080:
+To serve up the sample API itself on port 8080:
 
 `stack exec state-graph-server`
+
+Or, to serve up the HAL-supporting version of the API:
+
+`stack exec state-graph-server -- --hyper`
 
 To run the test suite:
 

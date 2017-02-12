@@ -1,7 +1,6 @@
 name:                servant-state-graph
 version:             0.1.0.0
 synopsis:            Generate graphs from Servant API types
-description:         Please see README.md
 homepage:            https://github.com/corajr/servant-state-graph#readme
 license:             BSD3
 license-file:        LICENSE
@@ -12,6 +11,7 @@ category:            Web
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
+bug-reports:         https://github.com/corajr/servant-state-graph/issues
 
 library
   hs-source-dirs:      src
