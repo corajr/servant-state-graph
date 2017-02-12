@@ -55,18 +55,18 @@ $(deriveJSON defaultOptions{ fieldLabelModifier = drop 1
                            , sumEncoding = UntaggedValue
                            } ''HALLink)
 
-data HAL = HAL
-  { resource :: Value
+data HAL a = HAL
+  { resource :: a
   , _links :: HM.HashMap Text HALLink
-  , _embedded :: HM.HashMap Text HAL
+  , _embedded :: HM.HashMap Text (HAL Value)
   }
-  | HALArray [HAL]
+  | HALArray [HAL Value]
   deriving (Eq, Show)
 
-instance ToJSON HAL where
+instance (ToJSON a) => ToJSON (HAL a) where
   toJSON (HALArray xs) = toJSONList xs
   toJSON (HAL {..}) =
-    case resource of
+    case toJSON resource of
       Object ps -> Object (HM.unions [ps, links, embedded])
       _ -> error "HAL resources must contain JSON objects"
     where addProp :: (ToJSON a) => Text -> HM.HashMap Text a -> HM.HashMap Text Value
@@ -76,18 +76,18 @@ instance ToJSON HAL where
           links = addProp "_links" _links
           embedded = addProp "_embedded" _embedded
 
-instance FromJSON HAL where
+instance (FromJSON a) => FromJSON (HAL a) where
   parseJSON (Object v) = do links <- v .:? "_links"
                             embedded <- v .:? "_embedded"
                             let links' = fromMaybe HM.empty links
                                 embedded' = fromMaybe HM.empty embedded
                                 v' = HM.delete "_links" (HM.delete "_embedded" v)
-                            return $ HAL (Object v') links' embedded'
+                            HAL <$> parseJSON (Object v') <*> pure links' <*> pure embedded'
   parseJSON xs@(Array _) = fmap HALArray $ listParser parseJSON xs
   parseJSON invalid = typeMismatch "HAL" invalid
 
-toHAL :: (ToJSON a) => a -> HAL
-toHAL x = HAL (toJSON x) HM.empty HM.empty
+toHAL :: (ToJSON a) => a -> HAL a
+toHAL x = HAL x HM.empty HM.empty
 
 emptyLink :: HALLink
 emptyLink = HALLink

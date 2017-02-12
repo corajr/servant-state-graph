@@ -25,7 +25,7 @@ order1 = Order "USD" "shipped" 10.20
 link1 :: HALLink
 link1 = toLink "/orders/523"
 
-order1' :: HAL
+order1' :: HAL Order
 order1' = (toHAL order1) { _links = HM.singleton "self" link1 }
 
 links :: HALLink
@@ -46,7 +46,7 @@ spec = do
                                          ]
   describe "HAL" $ do
     it "wraps a JSON object with optional properties _links and _embedded" $ do
-      toHAL order1 `shouldBe` HAL (toJSON order1) HM.empty HM.empty
+      toHAL order1 `shouldBe` HAL order1 HM.empty HM.empty
     it "serializes to have the properties of the object, with _links or _embedded added" $ do
       toJSON order1' `shouldBe` object [ "currency" .= ("USD" :: String)
                                        , "status" .= ("shipped" :: String)
