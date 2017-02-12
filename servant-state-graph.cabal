@@ -21,7 +21,10 @@ library
                      , Servant.StateGraph
                      , Servant.StateGraph.Graph
                      , Servant.StateGraph.Graph.JSON
+                     , Servant.StateGraph.Graph.Links
+                     , Servant.StateGraph.Graph.RichEndpoint
                      , Servant.StateGraph.Graph.Server
+                     , Servant.StateGraph.Graph.Types
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , containers

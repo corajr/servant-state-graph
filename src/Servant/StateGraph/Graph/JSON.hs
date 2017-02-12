@@ -3,7 +3,7 @@ module Servant.StateGraph.Graph.JSON where
 
 import qualified Data.ByteString.Lazy as BL
 import Data.Graph.Inductive.Graph
-import Servant.StateGraph.Graph
+import Servant.StateGraph.Graph.Types
 import Data.Aeson
 import Data.Aeson.TH
 

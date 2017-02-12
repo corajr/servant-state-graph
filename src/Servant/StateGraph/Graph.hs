@@ -6,12 +6,12 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
-module Servant.StateGraph.Graph where
-
+module Servant.StateGraph.Graph
+  ( module Servant.StateGraph.Graph
+  , module Servant.StateGraph.Graph.Links
+  , module Servant.StateGraph.Graph.RichEndpoint
+  , module Servant.StateGraph.Graph.Types
+  ) where
 
 import qualified Data.ByteString.Char8 as B
 import Control.Lens.TH
@@ -19,83 +19,27 @@ import Control.Lens.TH
 import GHC.Generics
 import Data.Typeable
 import Data.Maybe
-import Data.List
 import qualified Data.Text as T
 import Data.Proxy (Proxy(..))
 import Data.Graph.Inductive.Graph (empty, insNode, insEdge, mkGraph, Node, LEdge(..), LNode(..))
 import Data.Graph.Inductive.PatriciaTree
 import Control.Lens (view, use, uses, (.=), (<>=), (<<+=), (%=), (&), (<>~), (^.), (%~))
 import qualified Control.Lens as L
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
 import Control.Monad.State
 
 import GHC.TypeLits
 
-import Network.URI (URI(..), nullURI, pathSegments)
 import qualified Network.HTTP.Types as HTTP
 
 import Servant.API
 import Servant.Utils.Links
 import Servant.Docs.Internal
 import Servant.API.ContentTypes
-
--- $setup
--- >>> :set -XDataKinds
--- >>> :set -XTypeOperators
--- >>> :set -XFlexibleInstances
--- >>> :set -XMultiParamTypeClasses
-
--- | A marker for the Root node.
-data Root
-
-type instance IsElem' Root api = ()
-
-data NodeType = NormalNode
-              | TargetNode
-              | ErrorNode
-              deriving (Eq, Show, Ord)
-
-data ApiNode = ApiNode
-  { apiNodeName :: String
-  , apiNodeType :: NodeType
-  } deriving (Eq, Show, Ord)
-
-data ApiEdge = ApiEdge
-  { apiEdgeName :: String
-  , apiEdgeColor :: String
-  } deriving (Eq, Show, Ord)
-
-type ApiGraph = Gr ApiNode ApiEdge
-
-type SourceType = TypeRep
-type TargetType = TypeRep
-
-data ApiLink = ApiLink
-  { _segments :: [String]
-  , _queryParams :: [String]
-  }
-$(makeLenses ''ApiLink)
-
-emptyLink :: ApiLink
-emptyLink = ApiLink mempty mempty
-
-data RichEndpoint = RichEndpoint
-  { _apiLink :: ApiLink
-  , _endpointMethod :: StdMethod
-  , _returnType :: TypeRep
-  }
-$(makeLenses ''RichEndpoint)
-
-data RichLink = RichLink
-  { _linkSource :: RichEndpoint
-  , _linkTarget :: RichEndpoint
-  , _linkTargetURI :: URI
-  , _linkTargetNodeType :: NodeType
-  , _linkRel :: String
-  }
-
-$(makeLenses ''RichLink)
+import Servant.StateGraph.Graph.RichEndpoint
+import Servant.StateGraph.Graph.Links
+import Servant.StateGraph.Graph.Types
 
 -- | State data for building up the graph.
 data GraphStateData = GraphStateData
@@ -111,57 +55,6 @@ $(makeLenses ''GraphStateData)
 
 type GraphState = State GraphStateData
 
-apiLinkToURI :: ApiLink -> URI
-apiLinkToURI (ApiLink {..}) =
-  nullURI { uriPath = '/' : intercalate "/" _segments
-          , uriQuery = if not (null _queryParams) then '?': intercalate "&" _queryParams else ""
-          }
-
--- | Infix operator for expressing a link between two endpoints.
-type a :=> b = (Proxy a, Proxy b)
-
--- | A convenient value to be used with @linkFor@, as in:
---
--- >>> type Counter = "counter" :> Get '[JSON] Int
--- >>> type CounterIncrement = "counter" :> "inc" :> Post '[JSON] Int
--- >>> let edge = edgeFrom :: Counter :=> CounterIncrement
--- >>> edge
--- (Proxy,Proxy)
--- >>> :{
--- instance LinksFor (Counter :<|> CounterIncrement) where
---   linksFor api = [ linkFor api edge NormalNode ]
--- :}
-
-edgeFrom :: (Proxy a, Proxy b)
-edgeFrom = (Proxy, Proxy)
-
--- | Define the links that lead to this return type.
---
--- >>> data User
--- >>> type UserIndex = "users" :> Get '[JSON] [User]
--- >>> type UserShow = "users" :> Capture "id" Int :> Get '[JSON] User
--- >>> type API = UserIndex :<|> UserShow
--- >>> :{
--- instance LinksFor API where
---   linksFor api = [ linkFor api (edgeFrom :: UserIndex :=> UserShow) NormalNode ]
--- :}
-
-class LinksFor api where
-  linksFor :: Proxy api -> [RichLink]
-  linksFor a = []
-
-  linkFor :: ( IsElem source api
-             , IsElem target api
-             , HasRichEndpoint source
-             , HasRichEndpoint target)
-          => Proxy api -> (Proxy source, Proxy target) -> NodeType -> RichLink
-  linkFor _ (s, t) nodeType = RichLink sourceEndpoint targetEndpoint uri nodeType rel
-    where sourceEndpoint = getRichEndpoint s
-          targetEndpoint = getRichEndpoint t
-          uri = apiLinkToURI (targetEndpoint ^. apiLink)
-          meth = targetEndpoint ^. endpointMethod
-          rel = if nodeType == ErrorNode then "" else show meth ++ " " ++ show uri
-
 -- | Color for each common type of request: green for GET, purple for POST, blue for PUT, red for DELETE.
 verbColors :: StdMethod -> String
 verbColors GET = "green"
@@ -169,10 +62,6 @@ verbColors POST = "purple"
 verbColors PUT = "blue"
 verbColors DELETE = "red"
 verbColors _ = "black"
-
-nodeTypesFromLinks :: [RichLink] -> Map.Map TypeRep NodeType
-nodeTypesFromLinks = Map.unions . map f
-  where f l = Map.singleton (l^.linkTarget.returnType) (l^.linkTargetNodeType)
 
 -- | Generate a graph from a Servant API type.
 graph :: (HasGraph api api, LinksFor api) => Proxy api -> ApiGraph
@@ -210,38 +99,6 @@ connectLinks = do
 -- https://github.com/haskell-servant/servant/blob/master/servant-docs/src/Servant/Docs/Internal.hs#L813
 -- https://hackage.haskell.org/package/servant-docs-0.10/docs/src/Servant-Docs-Internal.html#docs
 -- basically a reimplementation of HasDocs type class
-
--- | Extract the 'ApiLink', return type, and method from an endpoint.
-class HasRichEndpoint endpoint where
-  getRichEndpoint :: Proxy endpoint -> RichEndpoint
-
-instance HasRichEndpoint Root where
-  getRichEndpoint p =
-    RichEndpoint { _apiLink = emptyLink
-                 , _endpointMethod = error "no method"
-                 , _returnType = typeRep p
-                 }
-
-instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (sym :> sub) where
-  getRichEndpoint _ = apiLink.segments %~ (symbolVal s:) $ getRichEndpoint (Proxy :: Proxy sub)
-    where s = Proxy :: Proxy sym
-
-instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (Capture sym a :> sub) where
-  getRichEndpoint _ = apiLink.segments %~ ((':':symbolVal s):) $ getRichEndpoint (Proxy :: Proxy sub)
-    where s = Proxy :: Proxy sym
-
-instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (QueryParam sym a :> sub) where
-  getRichEndpoint _ = apiLink.queryParams %~ (symbolVal s:) $ getRichEndpoint (Proxy :: Proxy sub)
-    where s = Proxy :: Proxy sym
-
-instance (ReflectMethod method, Typeable a) => HasRichEndpoint (Verb method status ctypes a) where
-  getRichEndpoint _ = RichEndpoint emptyLink method retType
-   where method = case (reflectMethod (Proxy :: Proxy method)) of
-           "GET" -> GET
-           "POST" -> POST
-           "PUT" -> PUT
-           "DELETE" -> DELETE
-         retType = typeRep (Proxy :: Proxy a)
 
 class HasGraph root api where
   graphFor :: Proxy root -> Proxy api -> GraphState ()
