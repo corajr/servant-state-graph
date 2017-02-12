@@ -14,8 +14,6 @@ import Servant.HAL.Server
 import qualified Data.HashMap.Strict as HM
 import SampleAPI
 
-type HyperShoppe1 = Hyper Shoppe1
-
 instance ToHAL Category where
   toHAL = halWithSelfID api (Proxy :: Proxy CategoryShow) categoryId
 
