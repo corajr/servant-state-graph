@@ -3,7 +3,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-module Servant.StateGraph.GraphSpec (main, spec) where
+module Servant.StateGraph.GraphSpec where
 
 import Test.Hspec
 import qualified Data.Text as T

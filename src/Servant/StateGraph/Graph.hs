@@ -5,6 +5,7 @@
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 module Servant.StateGraph.Graph
   ( module Servant.StateGraph.Graph
@@ -41,6 +42,7 @@ import           GHC.TypeLits
 
 import qualified Network.HTTP.Types                    as HTTP
 import           Servant.API
+import           Servant.API.TypeLevel
 
 import           Servant.StateGraph.Graph.Links
 import           Servant.StateGraph.Graph.RichEndpoint
@@ -66,9 +68,12 @@ verbColors PUT    = "blue"
 verbColors DELETE = "red"
 verbColors _      = "black"
 
+endpoints :: Proxy api -> Proxy (Endpoints api)
+endpoints _ = Proxy
+
 -- | Generate a graph from a Servant API type.
-graph :: (HasGraph api api, LinksFor api) => Proxy api -> ApiGraph
-graph p = view currentGraph $ execState (graphFor p p >> connectLinks) startingState
+graph :: (Endpoints api ~ xs, EndpointsHaveGraph xs,  LinksFor api) => Proxy api -> ApiGraph
+graph p = view currentGraph $ execState (graphEndpoints (endpoints p) >> connectLinks) startingState
   where
     startingState = GraphStateData { _typesToNodeIds = withRoot
                                    , _nodeTypes = nodeTypesFromLinks apiLinks
@@ -97,13 +102,17 @@ connectLinks = do
   let edges = mapMaybe (mkEdge typesToNodeIds') xs
   mapM_ (\x -> currentGraph %= insEdge x) edges
 
--- | Generate a graph for an API type.
-class HasGraph root api where
-  graphFor :: Proxy root -> Proxy api -> GraphState ()
+-- | Generate a graph node from an endpoint.
+class HasGraph endpoint where
+  graphFor :: Proxy endpoint -> GraphState ()
+
+-- Extract one component of the endpoint.
+instance (HasGraph subEndpoint) => HasGraph (e :> subEndpoint) where
+  graphFor _ = graphFor (Proxy :: Proxy subEndpoint)
 
 -- Terminal instance for verbs (ending an endpoint path).
-instance (Typeable a, ReflectMethod method) => HasGraph root (Verb method status ctypes a) where
-  graphFor rootP _ = do
+instance (Typeable a, ReflectMethod method) => HasGraph (Verb method status ctypes a) where
+  graphFor _ = do
     let retType = typeRep (Proxy :: Proxy a)
     nodeType <- uses nodeTypes (Map.findWithDefault NormalNode retType)
     existingNode <- uses typesToNodeIds (Map.lookup retType)
@@ -115,24 +124,12 @@ instance (Typeable a, ReflectMethod method) => HasGraph root (Verb method status
         currentGraph %= insNode node
         typesToNodeIds %= Map.insert retType currentNodeId'
 
- -- Extract one component of the path.
-instance (KnownSymbol path, HasGraph root api) => HasGraph root (path :> api) where
-  graphFor rootP _ = graphFor rootP subApiP
-    where subApiP = Proxy :: Proxy api
-          pa = Proxy :: Proxy path
+-- | Transform a type-level list of endpoints into a graph.
+class EndpointsHaveGraph xs where
+  graphEndpoints :: proxy xs -> GraphState ()
 
-instance (KnownSymbol sym, HasGraph root api)
-      => HasGraph root (QueryParam sym a :> api) where
-  graphFor rootP p = graphFor rootP subApiP
-    where subApiP = Proxy :: Proxy api
-          paramP = Proxy :: Proxy (QueryParam sym a)
+instance EndpointsHaveGraph '[] where
+  graphEndpoints _ = pure ()
 
-instance (KnownSymbol sym, HasGraph root api) => HasGraph root (Capture sym a :> api) where
-  graphFor rootP _ = graphFor rootP subApiP
-    where subApiP = Proxy :: Proxy api
-          sym' = Proxy :: Proxy sym
-
--- Compute subgraphs for each piece of the "alternatives" (:<|>) in an API type, then join them.
-instance (HasGraph root a, HasGraph root b) => HasGraph root (a :<|> b) where
-  graphFor rootP _ =
-    graphFor rootP (Proxy :: Proxy a) >> graphFor rootP (Proxy :: Proxy b)
+instance (HasGraph x, EndpointsHaveGraph xs) => EndpointsHaveGraph (x ': xs) where
+  graphEndpoints _ = graphFor (Proxy :: Proxy x) >> graphEndpoints (Proxy :: Proxy xs)

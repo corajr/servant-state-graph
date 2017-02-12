@@ -11,6 +11,7 @@ import qualified Data.ByteString.Lazy as BL
 import Servant.StateGraph.Graph
 import Servant.StateGraph.Graph.JSON
 import Servant.API
+import Servant.API.TypeLevel
 import Servant.Utils.Links
 
 import Data.Proxy (Proxy(..))

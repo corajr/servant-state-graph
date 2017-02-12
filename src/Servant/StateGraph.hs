@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 module Servant.StateGraph
   ( module Servant.StateGraph
   , module Servant.StateGraph.Graph
@@ -12,6 +13,7 @@ import Data.Default
 import Data.Monoid ((<>))
 import Data.Proxy (Proxy(..))
 import Data.Typeable
+import Servant.API.TypeLevel
 import Servant.StateGraph.Graph
 import Servant.StateGraph.Graph.JSON
 import Servant.StateGraph.Graph.Server
@@ -28,16 +30,17 @@ data StateGraphConfig = StateGraphConfig
 instance Default StateGraphConfig where
   def = StateGraphConfig (Serve 8090)
 
-stateGraph :: (HasGraph api api, LinksFor api) => StateGraphConfig -> Proxy api -> IO ()
+stateGraph :: (Endpoints api ~ endpoints, EndpointsHaveGraph endpoints, LinksFor api) => StateGraphConfig -> Proxy api -> IO ()
 stateGraph (StateGraphConfig {_command}) api =
   case _command of
     WriteJSON path -> BL.writeFile path json
     WriteJS path -> BL.writeFile path js
     PrintJSON -> BL.putStr json
-    Serve port -> serveGraph (graph api) port
+    Serve port -> serveGraph gr port
   where
-    json = graphToJSON (graph api)
+    gr = graph api
+    json = graphToJSON gr
     js = "var ApiOutput = " <> json <> ";"
 
-stateGraph' :: (HasGraph api api, LinksFor api) => Proxy api -> IO ()
+stateGraph' :: (Endpoints api ~ endpoints, EndpointsHaveGraph endpoints, LinksFor api) => Proxy api -> IO ()
 stateGraph' = stateGraph def
