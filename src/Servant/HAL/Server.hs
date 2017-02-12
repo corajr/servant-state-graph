@@ -13,7 +13,6 @@ module Servant.HAL.Server where
 import           Data.Proxy              (Proxy (..))
 import           Servant.API
 import           Servant.HAL
-import           Servant.HAL
 import           Servant.Server.Internal
 
 -- | Transform API type @api@ to a type supporting HAL+JSON.
