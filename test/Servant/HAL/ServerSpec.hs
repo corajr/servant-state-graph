@@ -24,8 +24,7 @@ hyperServer1 = return (toHAL "hello")
 
 type API2 = Get '[JSON] String
        :<|> Capture "id" Int :> Post '[JSON] String
-type HyperAPI2 = Hyper API2
-type HyperAPI2' = Get '[JSON] (HAL String)
+type HyperAPI2 = Get '[JSON] (HAL String)
              :<|> Capture "id" Int :> Post '[JSON] (HAL String)
 
 main :: IO ()
