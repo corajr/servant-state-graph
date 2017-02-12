@@ -17,23 +17,19 @@ import SampleAPI
 type HyperShoppe1 = Hyper Shoppe1
 
 instance ToHAL Category where
-  toHAL c@Category{categoryId} =
-    halWithSelfID c api (Proxy :: Proxy CategoryShow) categoryId
+  toHAL = halWithSelfID api (Proxy :: Proxy CategoryShow) categoryId
 
 instance ToHAL Vendor where
-  toHAL v@Vendor{vendorId} =
-    halWithSelfID v api (Proxy :: Proxy VendorShow) vendorId
+  toHAL = halWithSelfID api (Proxy :: Proxy VendorShow) vendorId
 
 instance ToHAL Product where
-  toHAL p@Product{productId} =
-    halWithSelfID p api (Proxy :: Proxy ProductShow) productId
+  toHAL = halWithSelfID api (Proxy :: Proxy ProductShow) productId
 
 instance ToHAL Cart
 instance ToHAL Invoice
 instance ToHAL ErrorState
 instance ToHAL Homepage where
-  toHAL h =
-    halWithSelfRoute h api (Proxy :: Proxy HomeRoute)
+  toHAL = halWithSelfRoute api (Proxy :: Proxy HomeRoute)
 
 instance (ToHAL a) => ToHAL [a]
 

@@ -1,7 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DataKinds #-}
 module Servant.HALSpec where
 
@@ -28,8 +27,7 @@ order1 :: Order
 order1 = Order 523 "USD" "shipped" 10.20
 
 instance ToHAL Order where
-  toHAL o@Order{orderID} =
-    halWithSelfID o orderAPI (Proxy :: Proxy OrderShow) orderID
+  toHAL = halWithSelfID orderAPI (Proxy :: Proxy OrderShow) orderID
 
 type Index = Get '[JSON] String
 type OrderIndex = "orders" :> Get '[JSON] [Order]

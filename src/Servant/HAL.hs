@@ -134,12 +134,12 @@ halWithSelf :: ( ToJSON a
                , IsElem endpoint api
                , HasLink endpoint
                )
-            => a
-            -> Proxy api
+            => Proxy api
             -> Proxy endpoint
             -> (MkLink endpoint -> Link)
+            -> a
             -> HAL a
-halWithSelf o api endpoint f =
+halWithSelf api endpoint f o =
     HAL o (HM.singleton "self" selfLink) HM.empty
     where
       selfLink = toHALLink api endpoint f
@@ -148,12 +148,12 @@ halWithSelfID :: ( ToJSON a
                  , IsElem endpoint api
                  , HasLink endpoint
                  , MkLink endpoint ~ (i -> Link))
-            => a -> Proxy api -> Proxy endpoint -> i -> HAL a
-halWithSelfID o a e i = halWithSelf o a e ($ i)
+            => Proxy api -> Proxy endpoint -> (a -> i) -> a -> HAL a
+halWithSelfID a e getI o = halWithSelf a e ($ (getI o)) o
 
 halWithSelfRoute :: ( ToJSON a
                     , IsElem endpoint api
                     , HasLink endpoint
                     , MkLink endpoint ~ Link)
-                 => a -> Proxy api -> Proxy endpoint -> HAL a
-halWithSelfRoute o a e = halWithSelf o a e id
+                 => Proxy api -> Proxy endpoint -> a -> HAL a
+halWithSelfRoute a e o = halWithSelf a e id o
