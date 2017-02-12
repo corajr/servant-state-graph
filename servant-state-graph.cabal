@@ -17,6 +17,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     SampleAPI
                      , Servant.HAL
+                     , Servant.HAL.Server
                      , Servant.StateGraph
                      , Servant.StateGraph.Graph
                      , Servant.StateGraph.Graph.JSON
