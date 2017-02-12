@@ -8,7 +8,9 @@
 {-# LANGUAGE TypeOperators         #-}
 module Servant.StateGraph.Graph
   ( module Servant.StateGraph.Graph
-  , module X
+  , module Servant.StateGraph.Graph.Links
+  , module Servant.StateGraph.Graph.RichEndpoint
+  , module Servant.StateGraph.Graph.Types
   ) where
 
 
@@ -40,9 +42,9 @@ import           GHC.TypeLits
 import qualified Network.HTTP.Types                    as HTTP
 import           Servant.API
 
-import           Servant.StateGraph.Graph.Links        as X
-import           Servant.StateGraph.Graph.RichEndpoint as X
-import           Servant.StateGraph.Graph.Types        as X
+import           Servant.StateGraph.Graph.Links
+import           Servant.StateGraph.Graph.RichEndpoint
+import           Servant.StateGraph.Graph.Types
 
 -- | State data for building up the graph.
 data GraphStateData = GraphStateData
