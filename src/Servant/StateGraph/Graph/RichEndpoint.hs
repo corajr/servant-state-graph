@@ -28,11 +28,25 @@ instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (sym :> sub) 
   getRichEndpoint _ = apiLink.segments %~ (symbolVal s:) $ getRichEndpoint (Proxy :: Proxy sub)
     where s = Proxy :: Proxy sym
 
+instance (HasRichEndpoint sub) => HasRichEndpoint (ReqBody y x :> sub) where
+  getRichEndpoint _ = getRichEndpoint (Proxy :: Proxy sub)
+
+instance (HasRichEndpoint sub) => HasRichEndpoint (Header y x :> sub) where
+  getRichEndpoint _ = getRichEndpoint (Proxy :: Proxy sub)
+
 instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (Capture sym a :> sub) where
   getRichEndpoint _ = apiLink.segments %~ ((':':symbolVal s):) $ getRichEndpoint (Proxy :: Proxy sub)
     where s = Proxy :: Proxy sym
 
 instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (QueryParam sym a :> sub) where
+  getRichEndpoint _ = apiLink.queryParams %~ (symbolVal s:) $ getRichEndpoint (Proxy :: Proxy sub)
+    where s = Proxy :: Proxy sym
+
+instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (QueryParams sym a :> sub) where
+  getRichEndpoint _ = apiLink.queryParams %~ (symbolVal s:) $ getRichEndpoint (Proxy :: Proxy sub)
+    where s = Proxy :: Proxy sym
+
+instance (HasRichEndpoint sub, KnownSymbol sym) => HasRichEndpoint (QueryFlag sym :> sub) where
   getRichEndpoint _ = apiLink.queryParams %~ (symbolVal s:) $ getRichEndpoint (Proxy :: Proxy sub)
     where s = Proxy :: Proxy sym
 

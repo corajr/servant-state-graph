@@ -36,7 +36,7 @@ type TargetType = TypeRep
 data ApiLink = ApiLink
   { _segments :: [String]
   , _queryParams :: [String]
-  }
+  } deriving (Eq, Show)
 $(makeLenses ''ApiLink)
 
 emptyLink :: ApiLink
@@ -46,7 +46,7 @@ data RichEndpoint = RichEndpoint
   { _apiLink :: ApiLink
   , _endpointMethod :: StdMethod
   , _returnType :: TypeRep
-  }
+  } deriving (Eq, Show)
 $(makeLenses ''RichEndpoint)
 
 
