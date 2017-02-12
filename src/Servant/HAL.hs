@@ -28,6 +28,16 @@ import           Network.URI           (URI (..), nullURI, parseURIReference,
 import           Servant.API
 import           Servant.Utils.Links
 
+-- $setup
+-- >>> :set -XDeriveGeneric
+-- >>> :set -XDataKinds
+-- >>> :set -XTypeOperators
+-- >>> :set -XFlexibleInstances
+-- >>> :set -XMultiParamTypeClasses
+-- >>> import Servant.API
+-- >>> import Data.Aeson
+-- >>> import GHC.Generics
+
 instance ToJSON URI where
   toJSON = String . T.pack . show
 
@@ -59,6 +69,7 @@ $(deriveJSON defaultOptions{ fieldLabelModifier = drop 1
                            , sumEncoding = UntaggedValue
                            } ''HALLink)
 
+-- | A HAL+JSON resource. May contain links or embed other resources.
 data HAL a = HAL
   { resource  :: a
   , _links    :: HM.HashMap Text HALLink
@@ -67,6 +78,7 @@ data HAL a = HAL
   | HALArray [HAL Value]
   deriving (Eq, Show)
 
+-- | Generate a @HAL a@ representation from a.
 class (ToJSON a) => ToHAL a where
   toHAL :: a -> HAL a
   toHAL x = HAL x HM.empty HM.empty
@@ -102,6 +114,7 @@ instance Accept HALJSON where
 instance (ToHAL a) => MimeRender HALJSON a where
   mimeRender _ v = encode (toHAL v)
 
+-- | An empty @HALLink@.
 emptyLink :: HALLink
 emptyLink = HALLink
   { _href = nullURI
@@ -117,6 +130,11 @@ emptyLink = HALLink
 uriFromString :: String -> URI
 uriFromString xs = fromMaybe (error $ "invalid URI literal: " ++ xs) . parseURIReference $ xs
 
+-- | Type-safe creation of a @HALLink@.
+--
+-- You must supply a function f that translates the output of @safeLink@ into a
+-- @Link@. If the endpoint has no @Capture@ or other components that take an
+-- argument, this function can be @id@ (see @toHALLink'@).
 toHALLink :: (IsElem endpoint api, HasLink endpoint)
           => Proxy api
           -> Proxy endpoint
@@ -126,10 +144,19 @@ toHALLink a e f = emptyLink { _href = uri' }
   where uri = linkURI (f (safeLink a e))
         uri' = uri `relativeTo` uriFromString "/"
 
+-- | Type-safe creation of a @HALLink@ for an endpoint with no arguments.
+--
+-- The endpoint must not contain any @Capture@ or other components needing
+-- input.
 toHALLink' :: (IsElem endpoint api, HasLink endpoint, MkLink endpoint ~ Link)
            => Proxy api -> Proxy endpoint -> HALLink
 toHALLink' a e = toHALLink a e id
 
+
+-- | Generate a @HAL a@ with a "self" link.
+--
+-- As with @toHALLink@, you must supply a function from @MkLink endpoint@ to
+-- @Link@.
 halWithSelf :: ( ToJSON a
                , IsElem endpoint api
                , HasLink endpoint
@@ -144,6 +171,18 @@ halWithSelf api endpoint f o =
     where
       selfLink = toHALLink api endpoint f
 
+-- | Generate a @HAL a@ with a "self" link produced by an ID getter.
+--
+-- Example:
+-- >>> data User = User { userID :: Int, name :: String } deriving Generic
+-- >>> instance ToJSON User
+-- >>> type UserIndex = "users" :> Get '[HALJSON] [User]
+-- >>> type UserShow = "users" :> Capture "id" Int :> Get '[HALJSON] User
+-- >>> type UserAPI = UserIndex :<|> UserShow
+-- >>> :{
+-- instance ToHAL User where
+--   toHAL = halWithSelfID (Proxy :: Proxy UserAPI) (Proxy :: Proxy UserShow) userID
+-- :}
 halWithSelfID :: ( ToJSON a
                  , IsElem endpoint api
                  , HasLink endpoint
@@ -151,6 +190,19 @@ halWithSelfID :: ( ToJSON a
             => Proxy api -> Proxy endpoint -> (a -> i) -> a -> HAL a
 halWithSelfID a e getI o = halWithSelf a e ($ (getI o)) o
 
+-- | Generate a @HAL a@ with a "self" link produced by a simple route.
+--
+-- As with @toHALLink'@, this presumes a route with no @Capture@s or other
+--
+-- Example:
+-- >>> data Homepage = Homepage { homeData :: String } deriving Generic
+-- >>> instance ToJSON Homepage
+-- >>> type HomeRoute = Get '[HALJSON] Homepage
+-- >>> type HomeAPI = HomeRoute
+-- >>> :{
+-- instance ToHAL Homepage where
+--   toHAL = halWithSelfRoute (Proxy :: Proxy HomeAPI) (Proxy :: Proxy HomeRoute)
+-- :}
 halWithSelfRoute :: ( ToJSON a
                     , IsElem endpoint api
                     , HasLink endpoint
