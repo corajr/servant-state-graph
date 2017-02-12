@@ -44,6 +44,7 @@ spec = do
   describe "halServer" $ do
     -- is it even possible/desirable to write such a function?
     it "takes a Server api and returns a Server (Hyper api)" $ do
+      pending
       let hServer = halServer api1 server1
       runHandler server1 `shouldReturn` Right "hello"
       runHandler hServer `shouldReturn` Right (toHAL "hello")
