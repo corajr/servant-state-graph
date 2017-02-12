@@ -1,20 +1,19 @@
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE PolyKinds       #-}
-{-# LANGUAGE AllowAmbiguousTypes       #-}
-{-# LANGUAGE ScopedTypeVariables       #-}
-{-# LANGUAGE FlexibleContexts          #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE UndecidableInstances          #-}
-{-# LANGUAGE MultiParamTypeClasses          #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 module Servant.HAL.Server where
 
-import Data.Proxy (Proxy(..))
-import Servant.API
-import Servant.Server.Internal
-import Servant.HAL
+import           Data.Proxy              (Proxy (..))
+import           Servant.API
+import           Servant.HAL
+import           Servant.Server.Internal
 
 -- | Transform API type @api@ to a type where every return is @HAL@.
 type family Hyper api where
