@@ -1,5 +1,11 @@
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE PolyKinds       #-}
+{-# LANGUAGE AllowAmbiguousTypes       #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE UndecidableInstances          #-}
+{-# LANGUAGE MultiParamTypeClasses          #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 
@@ -15,3 +21,9 @@ type family Hyper api where
   Hyper (a :<|> b) = Hyper a :<|> Hyper b
   Hyper (e :> x) = e :> Hyper x
   Hyper (Verb m s ct a) = Verb m s ct (HAL a)
+
+hyper :: Proxy api -> Proxy (Hyper api)
+hyper _ = Proxy
+
+halServer :: (HasServer api '[], HasServer (Hyper api) '[]) => Proxy api -> Server api -> Server (Hyper api)
+halServer _ s = undefined
