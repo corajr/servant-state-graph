@@ -16,7 +16,7 @@ import           Servant.HAL
 import           Servant.HAL
 import           Servant.Server.Internal
 
--- | Transform API type @api@ to a type where every return is @HAL@.
+-- | Transform API type @api@ to a type supporting HAL+JSON.
 type family Hyper api where
   Hyper (a :<|> b) = Hyper a :<|> Hyper b
   Hyper (e :> x) = e :> Hyper x

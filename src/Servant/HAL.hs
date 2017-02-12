@@ -3,29 +3,30 @@ Data types based on HAL (Hypertext Application Language) IETF draft:
 https://tools.ietf.org/html/draft-kelly-json-hal-08
 -}
 
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
 module Servant.HAL where
 
-import Data.Aeson
-import Data.Aeson.Types
-import Data.Aeson.TH
-import Data.Proxy (Proxy(..))
-import Data.String (IsString(..))
-import Data.Maybe (fromMaybe)
-import Servant.API
-import Servant.Utils.Links
-import Network.URI (URI(..), nullURI, parseURIReference, relativeTo)
-import Network.HTTP.Media (MediaType, parseAccept, (//))
-import qualified Data.Text as T
-import Data.Text (Text)
+import           Data.Aeson
+import           Data.Aeson.TH
+import           Data.Aeson.Types
 import qualified Data.ByteString.Char8 as BS
-import qualified Data.HashMap.Strict as HM
+import qualified Data.HashMap.Strict   as HM
+import           Data.Maybe            (fromMaybe)
+import           Data.Proxy            (Proxy (..))
+import           Data.String           (IsString (..))
+import           Data.Text             (Text)
+import qualified Data.Text             as T
+import           Network.HTTP.Media    (MediaType, parseAccept, (//))
+import           Network.URI           (URI (..), nullURI, parseURIReference,
+                                        relativeTo)
+import           Servant.API
+import           Servant.Utils.Links
 
 instance ToJSON URI where
   toJSON = String . T.pack . show
@@ -42,14 +43,14 @@ instance FromJSON MediaType where
     where f = maybe (fail "Could not parse media type") pure . parseAccept . BS.pack . T.unpack
 
 data HALLink = HALLink
-  { _href :: URI
-  , _templated :: Maybe Bool
-  , _type :: Maybe MediaType
+  { _href        :: URI
+  , _templated   :: Maybe Bool
+  , _type        :: Maybe MediaType
   , _deprecation :: Maybe URI
-  , _name :: Maybe String
-  , _profile :: Maybe URI
-  , _title :: Maybe String
-  , _hreflang :: Maybe String
+  , _name        :: Maybe String
+  , _profile     :: Maybe URI
+  , _title       :: Maybe String
+  , _hreflang    :: Maybe String
   }
   | HALLinks [HALLink]
   deriving (Eq, Show)
@@ -59,8 +60,8 @@ $(deriveJSON defaultOptions{ fieldLabelModifier = drop 1
                            } ''HALLink)
 
 data HAL a = HAL
-  { resource :: a
-  , _links :: HM.HashMap Text HALLink
+  { resource  :: a
+  , _links    :: HM.HashMap Text HALLink
   , _embedded :: HM.HashMap Text (HAL Value)
   }
   | HALArray [HAL Value]
@@ -75,7 +76,7 @@ instance (ToJSON a) => ToJSON (HAL a) where
   toJSON (HAL {..}) =
     case toJSON resource of
       Object ps -> Object (HM.unions [ps, links, embedded])
-      _ -> error "HAL resources must contain JSON objects"
+      _         -> error "HAL resources must contain JSON objects"
     where addProp s xs = if not (HM.null xs)
                          then HM.singleton s (Object (HM.map toJSON xs))
                          else HM.empty
@@ -128,3 +129,31 @@ toHALLink a e f = emptyLink { _href = uri' }
 toHALLink' :: (IsElem endpoint api, HasLink endpoint, MkLink endpoint ~ Link)
            => Proxy api -> Proxy endpoint -> HALLink
 toHALLink' a e = toHALLink a e id
+
+halWithSelf :: ( ToJSON a
+               , IsElem endpoint api
+               , HasLink endpoint
+               )
+            => a
+            -> Proxy api
+            -> Proxy endpoint
+            -> (MkLink endpoint -> Link)
+            -> HAL a
+halWithSelf o api endpoint f =
+    HAL o (HM.singleton "self" selfLink) HM.empty
+    where
+      selfLink = toHALLink api endpoint f
+
+halWithSelfID :: ( ToJSON a
+                 , IsElem endpoint api
+                 , HasLink endpoint
+                 , MkLink endpoint ~ (i -> Link))
+            => a -> Proxy api -> Proxy endpoint -> i -> HAL a
+halWithSelfID o a e i = halWithSelf o a e ($ i)
+
+halWithSelfRoute :: ( ToJSON a
+                    , IsElem endpoint api
+                    , HasLink endpoint
+                    , MkLink endpoint ~ Link)
+                 => a -> Proxy api -> Proxy endpoint -> HAL a
+halWithSelfRoute o a e = halWithSelf o a e id

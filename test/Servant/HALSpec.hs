@@ -29,9 +29,7 @@ order1 = Order 523 "USD" "shipped" 10.20
 
 instance ToHAL Order where
   toHAL o@Order{orderID} =
-    HAL o (HM.singleton "self" selfLink) HM.empty
-    where
-      selfLink = toHALLink orderAPI (Proxy :: Proxy OrderShow) ($ orderID)
+    halWithSelfID o orderAPI (Proxy :: Proxy OrderShow) orderID
 
 type Index = Get '[JSON] String
 type OrderIndex = "orders" :> Get '[JSON] [Order]

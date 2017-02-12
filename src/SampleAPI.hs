@@ -3,10 +3,7 @@
 {-# LANGUAGE TypeOperators   #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-module SampleAPI
-    ( startApp
-    , Shoppe1
-    ) where
+module SampleAPI where
 
 import Data.Aeson
 import Data.Typeable
@@ -79,7 +76,7 @@ derive makeArbitrary ''ErrorState
 arb :: (Arbitrary a) => Handler a
 arb = liftIO (generate arbitrary)
 
-newtype Homepage = Homepage ([Category], [Vendor])
+newtype Homepage = Homepage { homeData :: ([Category], [Vendor]) }
 
 $(deriveJSON defaultOptions ''Homepage)
 
@@ -131,11 +128,8 @@ instance LinksFor Shoppe1 where
 apiGraph :: ApiGraph
 apiGraph = graph api
 
-productServer :: Server ProductShow
-productServer product_id = arb
-
 startApp :: IO ()
-startApp = do
+startApp =
     withStdoutLogger $ \aplogger -> do
         let settings = setPort 8080 $ setLogger aplogger defaultSettings
         runSettings settings app
@@ -153,7 +147,7 @@ server =
   :<|> const arb  -- CategoryShow
   :<|> arb -- VendorIndex
   :<|> const arb -- VendorShow
-  :<|> productServer -- "products" :> ShowRoute Product
+  :<|> const arb -- "products" :> ShowRoute Product
   :<|> const arb -- "products" :> Capture "id" Int :> "add"
   :<|> arb -- "cart" :> "buy" :> Post '[JSON] Invoice
   :<|> arb
