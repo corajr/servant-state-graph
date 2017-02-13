@@ -1,3 +1,6 @@
+{-| Extends the 'SampleAPI' with 'HAL' content type support.
+-}
+
 {-# LANGUAGE TypeOperators   #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -31,9 +34,11 @@ instance ToHAL Homepage where
 
 instance (ToHAL a) => ToHAL [a]
 
+-- | The HAL+JSON version of the API.
 hyperApp :: Application
 hyperApp = serve (hyper api) server
 
+-- | Start serving the hypermedia API.
 startHyperApp :: IO ()
 startHyperApp =
     withStdoutLogger $ \aplogger -> do

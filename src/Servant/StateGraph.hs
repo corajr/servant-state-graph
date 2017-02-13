@@ -1,3 +1,6 @@
+{-| Provides tools to generate a graph from a 'servant' API.
+-}
+
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -18,11 +21,13 @@ import Servant.StateGraph.Graph
 import Servant.StateGraph.Graph.JSON
 import Servant.StateGraph.Graph.Server
 
-data StateGraphCommand = WriteJSON FilePath
-                  | WriteJS FilePath
-                  | PrintJSON
-                  | Serve Int
+-- | What action 'stateGraph' should execute.
+data StateGraphCommand = WriteJSON FilePath -- ^ Write a JSON representation to file.
+                       | WriteJS FilePath -- ^ Write a JS representation ("var ApiOutput =" ++ JSON) to file.
+                       | PrintJSON -- ^ Print JSON to stdout.
+                       | Serve Int -- ^ Serve the graph viewer on the specified port.
 
+-- | Configuration for 'stateGraph'.
 data StateGraphConfig = StateGraphConfig
   { _command :: StateGraphCommand
   }
@@ -30,6 +35,7 @@ data StateGraphConfig = StateGraphConfig
 instance Default StateGraphConfig where
   def = StateGraphConfig (Serve 8090)
 
+-- | Graph an API using the specified 'StateGraphConfig'.
 stateGraph :: (Endpoints api ~ endpoints, EndpointsHaveGraph endpoints, LinksFor api) => StateGraphConfig -> Proxy api -> IO ()
 stateGraph (StateGraphConfig {_command}) api =
   case _command of
@@ -42,5 +48,7 @@ stateGraph (StateGraphConfig {_command}) api =
     json = graphToJSON gr
     js = "var ApiOutput = " <> json <> ";"
 
+-- | Graph an API using the default 'StateGraphConfig' (serve a viewer on port
+-- 8090).
 stateGraph' :: (Endpoints api ~ endpoints, EndpointsHaveGraph endpoints, LinksFor api) => Proxy api -> IO ()
 stateGraph' = stateGraph def

@@ -1,6 +1,8 @@
+{-| Typeclass for specifying the links associated with a particular API.
+-}
+
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TemplateHaskell #-}
 module Servant.StateGraph.Graph.Links where
 
 import Network.URI (URI(..), nullURI, pathSegments)
@@ -21,16 +23,7 @@ import Control.Lens.Operators
 -- >>> :set -XMultiParamTypeClasses
 -- >>> import Servant.API
 
-data RichLink = RichLink
-  { _linkSource :: RichEndpoint
-  , _linkTarget :: RichEndpoint
-  , _linkTargetURI :: URI
-  , _linkTargetNodeType :: NodeType
-  , _linkRel :: String
-  }
-
-$(makeLenses ''RichLink)
-
+-- | Convert an 'ApiLink' to a 'URI' situated at the root.
 apiLinkToURI :: ApiLink -> URI
 apiLinkToURI (ApiLink {..}) =
   nullURI { uriPath = '/' : intercalate "/" _segments
@@ -40,7 +33,7 @@ apiLinkToURI (ApiLink {..}) =
 -- | Infix operator for expressing a link between two endpoints.
 type a :=> b = (Proxy a, Proxy b)
 
--- | A convenient value to be used with @linkFor@, as in:
+-- | A convenient value to be used with 'linkFor', as in:
 --
 -- >>> type Counter = "counter" :> Get '[JSON] Int
 -- >>> type CounterIncrement = "counter" :> "inc" :> Post '[JSON] Int
@@ -65,7 +58,6 @@ edgeFrom = (Proxy, Proxy)
 -- instance LinksFor API where
 --   linksFor api = [ linkFor api (edgeFrom :: UserIndex :=> UserShow) NormalNode ]
 -- :}
-
 class LinksFor api where
   linksFor :: Proxy api -> [RichLink]
   linksFor a = []
@@ -82,6 +74,7 @@ class LinksFor api where
           meth = targetEndpoint ^. endpointMethod
           rel = if nodeType == ErrorNode then "" else show meth ++ " " ++ show uri
 
+-- | Extract the return types from a list of 'RichLink's.
 nodeTypesFromLinks :: [RichLink] -> Map.Map TypeRep NodeType
 nodeTypesFromLinks = Map.unions . map f
   where f l = Map.singleton (l^.linkTarget.returnType) (l^.linkTargetNodeType)

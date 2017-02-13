@@ -21,10 +21,13 @@ import Text.Mustache.Compile (embedTemplate)
 import Servant.StateGraph.Graph
 import Servant.StateGraph.Graph.JSON
 
+-- | A placeholder for plain HTML content type.
 data HTML
 
+-- | API type for the graph viewer.
 type GraphViewAPI = Get '[HTML] ApiGraph
 
+-- | HTML template for graph viewer.
 graphTemplate :: Template
 graphTemplate = $(embedTemplate ["app"] "index.mustache")
 
@@ -39,9 +42,11 @@ instance Accept HTML where
 instance MimeRender HTML ApiGraph where
   mimeRender _ gr = encodeUtf8 . T.fromStrict $ substitute graphTemplate gr
 
+-- | 'Proxy' for the 'GraphViewAPI' type.
 graphApi :: Proxy GraphViewAPI
 graphApi = Proxy
 
+-- | Turn a graph into a @wai@ 'Application'.
 app :: ApiGraph -> Application
 app gr = serve graphApi (return gr)
 

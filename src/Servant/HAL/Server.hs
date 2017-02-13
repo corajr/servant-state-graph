@@ -1,3 +1,6 @@
+{-| Type-level functions to turn an API into a HAL API.
+-}
+
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -21,5 +24,6 @@ type family Hyper api where
   Hyper (e :> x) = e :> Hyper x
   Hyper (Verb m s ct a) = Verb m s (HALJSON ': ct) a
 
+-- | Transform a 'Proxy api' into 'Proxy (Hyper api)'.
 hyper :: Proxy api -> Proxy (Hyper api)
 hyper _ = Proxy

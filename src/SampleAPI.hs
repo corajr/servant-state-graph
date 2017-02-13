@@ -1,3 +1,6 @@
+{-| Exemplifies the basic use of 'LinksFor' and how to generate a graph for an API.
+-}
+
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
@@ -17,6 +20,8 @@ import Control.Monad.Trans (liftIO)
 import Servant.StateGraph.Graph
 import Servant
 import Servant.API.TypeLevel
+
+-- * Domain types
 
 data Product = Product
   { productId :: Int
@@ -82,6 +87,8 @@ $(deriveJSON defaultOptions ''Homepage)
 
 derive makeArbitrary ''Homepage
 
+-- * API types
+
 type HomeRoute = Get '[JSON] Homepage
 
 type IndexRoute a = Get '[JSON] [a]
@@ -125,21 +132,26 @@ instance LinksFor Shoppe1 where
     , linkFor api (edgeFrom :: AddToCart :=> Purchase) TargetNode
     ]
 
+-- | Turn the API type proxy into an 'ApiGraph'.
 apiGraph :: ApiGraph
 apiGraph = graph api
 
+-- | Serve the API.
 startApp :: IO ()
 startApp =
     withStdoutLogger $ \aplogger -> do
         let settings = setPort 8080 $ setLogger aplogger defaultSettings
         runSettings settings app
 
+-- | The API as a WAI 'Application'.
 app :: Application
 app = serve api server
 
+-- | API type proxy.
 api :: Proxy Shoppe1
 api = Proxy
 
+-- | A fake server (generates arbitrary data).
 server :: Server Shoppe1
 server =
   arb -- HomeRoute

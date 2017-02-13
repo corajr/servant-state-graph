@@ -1,9 +1,16 @@
+{-| A 'RichEndpoint' makes information about an endpoint type accessible at the
+term level.
+-}
+
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Servant.StateGraph.Graph.RichEndpoint where
+module Servant.StateGraph.Graph.RichEndpoint
+  ( HasRichEndpoint(..)
+  , RichEndpoint(..)
+  ) where
 
 import GHC.TypeLits
 
@@ -12,6 +19,8 @@ import Data.Proxy (Proxy(..))
 import Control.Lens.Operators
 import Servant.API
 import Servant.StateGraph.Graph.Types
+
+-- * Typeclass
 
 -- | Extract the 'ApiLink', return type, and method from an endpoint.
 class HasRichEndpoint endpoint where

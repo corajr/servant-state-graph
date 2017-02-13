@@ -4,16 +4,12 @@ packages:
 - '.'
 extra-deps:
 - aeson-1.1.0.0
-- fast-logger-2.4.10
-- hspec-2.4.1
-- hspec-core-2.4.1
-- hspec-discover-2.4.1
-- hspec-expectations-0.8.2
-- http-api-data-0.3.5
-- natural-transformation-0.4
-- newtype-generics-0.5
+- derive-2.5.26
+- haskell-src-exts-1.17.1
+- mustache-2.1.2
+- primitive-0.6.2.0
 - servant-0.10
 - servant-docs-0.10
 - servant-server-0.10
-- warp-3.2.11
-resolver: lts-7.18
+- vector-0.12.0.0
+resolver: lts-8.0

@@ -1,10 +1,12 @@
+{-| Generate a graph from an API type built up using 'Servant.API' combinators.
+-}
+
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 module Servant.StateGraph.Graph
@@ -48,16 +50,9 @@ import           Servant.StateGraph.Graph.Links
 import           Servant.StateGraph.Graph.RichEndpoint
 import           Servant.StateGraph.Graph.Types
 
--- | State data for building up the graph.
-data GraphStateData = GraphStateData
-  { _typesToNodeIds :: Map.Map TypeRep Node
-  , _nodeTypes      :: Map.Map TypeRep NodeType
-  , _edgesQueue     :: [RichLink]
-  , _currentNodeId  :: Int
-  , _currentGraph   :: ApiGraph
-  }
-$(makeLenses ''GraphStateData)
+-- * Graph building
 
+-- | Data for building the graph in the 'State' monad.
 type GraphState = State GraphStateData
 
 -- | Color for each common type of request: green for GET, purple for POST, blue for PUT, red for DELETE.
@@ -85,6 +80,7 @@ graph p = view currentGraph $ execState (graphEndpoints (endpoints p) >> connect
     rootGraph = mkGraph [(0, ApiNode "Root" NormalNode)] []
     apiLinks = linksFor p
 
+-- | Turns a 'RichLink' into a 'LEdge ApiEdge', if possible.
 mkEdge :: Map.Map TypeRep Node -> RichLink -> Maybe (LEdge ApiEdge)
 mkEdge typesToNodeIds' l = do
   startNode <- Map.lookup sourceType typesToNodeIds'
@@ -95,12 +91,15 @@ mkEdge typesToNodeIds' l = do
           rel = l^.linkRel
           meth = l^.linkTarget.endpointMethod
 
+-- | Connects the edges in the 'GraphStateData' edge queue.
 connectLinks :: GraphState ()
 connectLinks = do
   xs <- use edgesQueue
   typesToNodeIds' <- use typesToNodeIds
   let edges = mapMaybe (mkEdge typesToNodeIds') xs
   mapM_ (\x -> currentGraph %= insEdge x) edges
+
+-- * Typeclasses
 
 -- | Generate a graph node from an endpoint.
 class HasGraph endpoint where
