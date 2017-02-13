@@ -29,6 +29,8 @@ The library exposes a function `stateGraph` that can generate graph JSON
 suitable for use with the included [viewer][viewer] or serve the viewer on a
 desired port.
 
+[Haddock documentation][haddock]
+
 To serve up the graph viewer (uses Cytoscape.js)
 at [127.0.0.1:8090](http://127.0.0.1:8090) for a sample API:
 
@@ -46,4 +48,5 @@ To run the test suite:
 
 `stack test`
 
-[viewer]: https://corajr.github.io/servant-state-graph/index.html
+[viewer]: https://corajr.github.io/servant-state-graph/viewer.html
+[haddock]: https://corajr.github.io/servant-state-graph/index.html
