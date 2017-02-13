@@ -52,6 +52,8 @@ instance FromJSON MediaType where
   parseJSON = withText "MediaType" f
     where f = maybe (fail "Could not parse media type") pure . parseAccept . BS.pack . T.unpack
 
+-- | A HAL+JSON link object. Must contain a URI, may have other properties as
+-- specified in the spec.
 data HALLink = HALLink
   { _href        :: URI
   , _templated   :: Maybe Bool
@@ -193,6 +195,7 @@ halWithSelfID a e getI o = halWithSelf a e ($ (getI o)) o
 -- | Generate a @HAL a@ with a "self" link produced by a simple route.
 --
 -- As with @toHALLink'@, this presumes a route with no @Capture@s or other
+-- components needing input.
 --
 -- Example:
 -- >>> data Homepage = Homepage { homeData :: String } deriving Generic
@@ -208,4 +211,4 @@ halWithSelfRoute :: ( ToJSON a
                     , HasLink endpoint
                     , MkLink endpoint ~ Link)
                  => Proxy api -> Proxy endpoint -> a -> HAL a
-halWithSelfRoute a e o = halWithSelf a e id o
+halWithSelfRoute a e = halWithSelf a e id
