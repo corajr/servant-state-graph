@@ -5,7 +5,7 @@ Inspired by [choclety](https://github.com/mooreniemi/choclety).
 
 [![example graph](docs/img/example_graph.gif)](https://corajr.github.io/servant-state-graph/index.html)
 
-[See a live demo.](https://corajr.github.io/servant-state-graph/index.html)
+[See a live demo.](https://corajr.github.io/servant-state-graph/viewer.html)
 
 ## Purpose
 
